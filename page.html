@@ -1,45 +1,52 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>شات العرب</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <style>
-    :root{--bg:#0b0b0f;--fg:#e7e7ea;--muted:#9ca3af;--card:#14141b;--border:#2a2a38;--accent:#6ee7b7;--danger:#ef4444}
-    *{box-sizing:border-box} html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui, -apple-system, Segoe UI, Roboto}
-    .wrap{max-width:720px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
-    header.app{position:sticky;top:0;background:var(--bg);padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:10}
-    header.app .title{font-weight:700}
-    header.app .icons{display:flex;gap:10px}
-    .iconbtn{background:var(--card);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:8px 10px;cursor:pointer}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
-    input,button,select,textarea{background:#101016;color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px}
-    button{cursor:pointer}
-    .muted{color:var(--muted)}
-    .login{padding:16px;display:flex;flex-direction:column;gap:14px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:520px){ .grid{grid-template-columns:1fr 1fr} }
-    .chat{display:flex;flex-direction:column;gap:12px;padding:12px}
-    .roomBanner{display:flex;align-items:center;gap:8px}
-    .messages{flex:1;min-height:50vh;max-height:55vh;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:10px;background:#0e0e14}
-    .msg{margin-bottom:8px}
-    .meta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
-    .name{font-weight:600}
-    .bubble{display:inline-block;margin-top:4px;background:#12121a;border:1px solid var(--border);padding:10px;border-radius:12px;max-width:95%}
-    .composer{position:sticky;bottom:0;display:flex;gap:8px;align-items:center}
-    .composer input{flex:1}
-    .presence{display:flex;gap:6px;overflow:auto}
-    .presence .user{border:1px solid var(--border);border-radius:999px;padding:6px 8px;font-size:12px;white-space:nowrap}
-    /* Panels */
-    .panel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:50}
-    .panel .inner{background:#0d0d12;border-top:1px solid var(--border);width:100%;max-width:720px;margin:0 auto;border-radius:12px 12px 0 0;padding:12px;max-height:80vh;overflow:auto}
-    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .pill{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:12px}
-    .danger{border-color:#7f1d1d;color:#fecaca}
-    .section-title{margin:12px 0 6px;font-weight:700}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>شات العرب</title>
+<style>
+:root{--bg:#0b0b0f;--fg:#e7e7ea;--muted:#9ca3af;--card:#14141b;--border:#2a2a38;--accent:#6ee7b7;--danger:#ef4444}
+*{box-sizing:border-box} html,body{height:100dvh} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto;-webkit-overflow-scrolling:touch}
+.wrap{max-width:740px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+header.app{position:sticky;top:0;background:var(--bg);padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:10}
+.title{font-weight:700}
+.icons{display:flex;gap:10px}
+.iconbtn{background:var(--card);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:8px 10px;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+input,button{background:#101016;color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px}
+button{cursor:pointer}
+.muted{color:var(--muted)}
+.login{padding:16px;display:flex;flex-direction:column;gap:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:520px){ .grid{grid-template-columns:1fr 1fr} }
+.chat{display:flex;flex-direction:column;gap:10px;padding:12px}
+.messages{flex:1;min-height:48vh;max-height:58vh;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:10px;background:#0e0e14}
+.msg{margin-bottom:8px}
+.meta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.name{font-weight:600}
+.bubble{display:inline-block;margin-top:4px;background:#12121a;border:1px solid var(--border);padding:10px;border-radius:12px;max-width:95%}
+.system{color:#cbd5e1;font-style:italic}
+.composerBar{position:fixed;left:0;right:0;bottom:0;max-width:740px;margin:0 auto;background:var(--bg);padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;z-index:15}
+.composerBar input{flex:1}
+.presence{display:flex;gap:6px;overflow:auto}
+.presence .user{border:1px solid var(--border);border-radius:999px;padding:6px 8px;font-size:12px;white-space:nowrap}
+.spacer{height:100px} /* مساحة تحت للكيبورد */
+
+.panel{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;z-index:50}
+.panel .inner{background:#0d0d12;border-top:1px solid var(--border);width:100%;max-width:740px;margin:0 auto;border-radius:12px 12px 0 0;padding:12px;max-height:80vh;overflow:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:12px}
+.danger{border-color:#7f1d1d;color:#fecaca}
+
+/* نافذة DM عائمة */
+.dm{position:fixed;bottom:90px;right:10px;width:320px;max-width:90vw;background:#0d0d12;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none;flex-direction:column;z-index:40}
+.dmHeader{display:flex;align-items:center;justify-content:space-between;background:#14141b;border-bottom:1px solid var(--border);padding:8px 10px;border-radius:10px 10px 0 0}
+.dmTitle{font-weight:600}
+.dmBtns button{padding:6px 8px}
+.dmBody{max-height:40vh;overflow:auto;background:#0e0e14;padding:10px}
+.dmComposer{display:flex;gap:8px;padding:8px;border-top:1px solid var(--border)}
+.dmMax{inset:0 !important;position:fixed !important;width:auto !important;height:auto !important;max-width:none !important;border-radius:0 !important}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -47,7 +54,6 @@
     <div class="title">غرفه العرب</div>
     <div class="icons">
       <button class="iconbtn" id="iconAdmin" type="button">🛡️</button>
-      <button class="iconbtn" id="iconDM" type="button">💬</button>
     </div>
   </header>
 
@@ -56,10 +62,10 @@
     <div class="grid">
       <div class="card">
         <h3>تسجيل دخول (جوال)</h3>
-        <label>اسم المستخدم (إنجليزي فقط):</label>
+        <label>اسم المستخدم (إنجليزي فقط)</label>
         <input id="u" placeholder="Guest123">
         <button id="loginQuick" type="button">دخول</button>
-        <p class="muted">سيتحوّل الاسم العربي تلقائيًا إلى Guest.</p>
+        <p class="muted">الاسم العربي يتحول تلقائيًا إلى Guest.</p>
       </div>
       <div class="card">
         <h3>دخول المشرف</h3>
@@ -74,59 +80,49 @@
 
   <!-- CHAT -->
   <section id="chat" class="chat" style="display:none">
-    <div class="roomBanner">
-      <span id="me" class="muted"></span>
-      <span class="pill">غرفة واحدة: غرفه العرب</span>
-    </div>
-
     <div class="presence" id="presence"></div>
     <div class="messages" id="messages"></div>
-
-    <div class="composer">
-      <input id="msg" placeholder="اكتب رسالة...">
-      <button id="send" type="button">إرسال</button>
-    </div>
+    <div class="spacer"></div>
   </section>
 
-  <!-- DM PANEL -->
-  <section id="dmPanel" class="panel">
-    <div class="inner">
-      <div class="row" style="justify-content:space-between">
-        <strong id="dmTitle">خاص مع …</strong>
-        <button class="iconbtn" id="closeDM" type="button">إغلاق</button>
-      </div>
-      <div id="dmMsgs" class="messages" style="max-height:35vh"></div>
-      <div class="row">
-        <input id="dmInput" placeholder="اكتب رسالة خاصة..." style="flex:1">
-        <button id="dmSend" type="button">إرسال</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACTION SHEET (reply/DM) -->
-  <div id="sheet" class="panel">
-    <div class="inner" style="padding-bottom:24px">
-      <div class="row" id="sheetBtns"></div>
-    </div>
+  <!-- شريط الكتابة الثابت -->
+  <div class="composerBar" id="composer" style="display:none">
+    <input id="msg" placeholder="اكتب رسالتك هنا">
+    <button id="send" type="button">إرسال</button>
   </div>
 
-  <!-- ADMIN PANEL -->
+  <!-- لوحة الإدارة (بسيطة) -->
   <div id="adminPanel" class="panel">
     <div class="inner">
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>لوحة الإدارة</strong>
         <div class="row">
           <button class="iconbtn" id="btnRefreshAdmin" type="button">تحديث</button>
-          <button class="iconbtn danger" id="btnClearChat" type="button">مسح الدردشة</button>
           <button class="iconbtn" id="closeAdmin" type="button">إغلاق</button>
         </div>
       </div>
-
-      <div class="section-title">المتصلون الآن</div>
       <div id="adminList"></div>
-
-      <div class="section-title">قائمة الحظر</div>
+      <div class="row" style="margin-top:8px">
+        <div class="pill">قائمة الحظر</div>
+      </div>
       <div id="banList"></div>
+    </div>
+  </div>
+
+  <!-- نافذة DM عائمة -->
+  <div class="dm" id="dmWin">
+    <div class="dmHeader">
+      <div class="dmTitle" id="dmTitle">خاص</div>
+      <div class="dmBtns">
+        <button id="dmMin" class="iconbtn" type="button">—</button>
+        <button id="dmMax" class="iconbtn" type="button">⤢</button>
+        <button id="dmClose" class="iconbtn" type="button">✕</button>
+      </div>
+    </div>
+    <div class="dmBody" id="dmBody"></div>
+    <div class="dmComposer">
+      <input id="dmInput" placeholder="اكتب رسالة خاصة…">
+      <button id="dmSend" type="button">إرسال</button>
     </div>
   </div>
 
@@ -136,7 +132,8 @@
 const state = {
   base: location.origin,
   token: null, me: null, socket: null,
-  selectedUser: null, dmWith: null, role: 'user', color:'#fff'
+  selectedUser: null, role:'user', color:'#fff',
+  dmWith: null, dmMax: false
 };
 const $ = s => document.querySelector(s);
 const el = (t,cls) => { const x=document.createElement(t); if(cls) x.className=cls; return x; };
@@ -155,97 +152,136 @@ async function get(path, auth=true){
 
 function setLoggedIn(me){
   state.me = me; state.role = me.role; state.color = me.color || '#fff';
-  $('#me').textContent = `أنت: ${me.username} · الدور: ${me.role}`;
   $('#login').style.display = 'none';
   $('#chat').style.display = 'flex';
+  $('#composer').style.display = 'flex';
+  $('#msg').focus();
+}
+
+function pushSystem(text){
+  const wrap = el('div','msg system');
+  wrap.textContent = text;
+  $('#messages').appendChild(wrap);
+  $('#messages').scrollTop = $('#messages').scrollHeight;
 }
 
 function pushMessage(m){
   const wrap = el('div','msg');
   const meta = el('div','meta');
   const name = el('span','name'); name.textContent = m.from; name.style.color = m.color || '#fff'; name.style.direction='ltr'; name.style.cursor='pointer';
-  name.onclick = ()=> openSheetForUser(m.userId, m.from, m);
+  name.onclick = ()=> openUserMenu(m.userId, m.from);
   meta.appendChild(name);
   const ts = el('span'); ts.textContent = new Date(m.ts).toLocaleTimeString(); meta.appendChild(ts);
   wrap.appendChild(meta);
   const bubble = el('div','bubble'); bubble.textContent = m.text; wrap.appendChild(bubble);
-  if (m.ref){ const ref = el('div','muted'); ref.textContent='↩ رد على رسالة'; wrap.appendChild(ref); }
   $('#messages').appendChild(wrap); $('#messages').scrollTop = $('#messages').scrollHeight;
 }
 
-function openSheetForUser(userId, username, message){
-  state.selectedUser = { userId, username, message };
-  const panel = $('#sheet'); const btns = $('#sheetBtns'); btns.innerHTML='';
-  const addBtn = (txt, fn)=>{ const b=el('button','iconbtn'); b.type='button'; b.textContent=txt; b.onclick=()=>{panel.style.display='none'; fn();}; btns.appendChild(b); };
-  addBtn('رد على الرسالة', ()=>{ const ref=message?.mid; const t=prompt('اكتب ردّك:'); if(!t||!ref) return; state.socket.emit('chat:reply', { text:t, ref }); });
-  addBtn('دخول خاص', ()=> openDM(userId, username));
-  panel.style.display='flex';
-}
-$('#sheet').onclick = (e)=>{ if (e.target.id==='sheet') e.currentTarget.style.display='none'; };
-
-function openDM(userId, username){ state.dmWith = { userId, username }; $('#dmTitle').textContent = `خاص مع: ${username}`; $('#dmPanel').style.display='flex'; }
-$('#closeDM').onclick = ()=> $('#dmPanel').style.display='none';
-$('#dmSend').onclick = ()=>{ const t=$('#dmInput').value.trim(); if(!t||!state.dmWith) return; state.socket.emit('dm:send', { toId: state.dmWith.userId, text: t }); $('#dmInput').value=''; };
-
 function renderPresence(list){
-  const box=$('#presence'); box.innerHTML='';
-  list.forEach(u=>{ const badge=el('div','user'); badge.textContent=u.username; badge.style.color=u.color||'#fff'; badge.style.direction='ltr'; badge.onclick=()=>openSheetForUser(u.userId, u.username, null); box.appendChild(badge); });
+  const area=$('#presence'); area.innerHTML='';
+  list.forEach(u=>{
+    const badge=el('div','user'); badge.textContent=u.username; badge.style.color=u.color||'#fff'; badge.style.direction='ltr';
+    badge.onclick = ()=> openUserMenu(u.userId, u.username);
+    area.appendChild(badge);
+  });
 }
 
-// Admin UI
+function openUserMenu(userId, username){
+  const isAdmin = (state.role==='admin'||state.role==='mod');
+  const wrap = el('div','panel'); const inner = el('div','inner'); wrap.appendChild(inner);
+  const row = el('div','row'); inner.appendChild(row);
+  const mkBtn = (t,fn,klass='iconbtn')=>{ const b=el('button',klass); b.textContent=t; b.onclick=()=>{document.body.removeChild(wrap); fn();}; return b; };
+
+  row.appendChild(el('div')); row.lastChild.textContent = `العضو: ${username}`;
+  const btnReply = mkBtn('رد', ()=>{ const t=prompt('نص الرد:'); if(!t) return; state.socket.emit('chat:reply',{ text:t, ref: 'any' }); });
+  const btnDm = mkBtn('خاص', ()=> openDM(userId, username));
+  inner.append(btnReply, btnDm);
+
+  if (isAdmin){
+    const adminRow = el('div','row'); adminRow.style.marginTop='8px';
+    adminRow.appendChild(mkBtn('طرد', ()=> adminKick(userId)));
+    adminRow.appendChild(mkBtn('حظر جهاز', ()=> adminBan(userId,'deviceId')));
+    adminRow.appendChild(mkBtn('حظر IP', ()=> adminBan(userId,'ip'),'iconbtn danger'));
+    inner.appendChild(adminRow);
+  }
+  wrap.onclick = (e)=>{ if (e.target===wrap) document.body.removeChild(wrap); };
+  document.body.appendChild(wrap); wrap.style.display='flex';
+}
+
+async function adminKick(userId){
+  const list = await get('/api/admin/online', true);
+  const u = list.find(x=>x.userId===userId); if (!u) return alert('غير متصل');
+  await post('/api/admin/kick',{ deviceId:u.deviceId, reason:'by admin' }, true);
+}
+async function adminBan(userId, kind){
+  const list = await get('/api/admin/online', true);
+  const u = list.find(x=>x.userId===userId); if (!u) return alert('غير متصل');
+  if (kind==='deviceId'){
+    // يفصل أولاً ثم يحظر (السيرفر ينفذ ذلك)
+    await post('/api/admin/ban',{ targetType:'deviceId', targetValue:u.deviceId, reason:'by admin', minutes:0 }, true);
+  } else {
+    await post('/api/admin/ban',{ targetType:'ip', targetValue:u.ip, reason:'by admin', minutes:0 }, true);
+  }
+}
+
+function openDM(userId, username){
+  state.dmWith = { userId, username };
+  $('#dmTitle').textContent = `خاص: ${username}`;
+  $('#dmBody').innerHTML = '';
+  $('#dmWin').style.display='flex';
+  $('#dmInput').focus();
+}
+$('#dmSend').onclick = ()=>{ const t=$('#dmInput').value.trim(); if(!t||!state.dmWith) return; state.socket.emit('dm:send',{ toId: state.dmWith.userId, text:t}); $('#dmInput').value=''; $('#dmInput').focus(); };
+$('#dmClose').onclick = ()=> $('#dmWin').style.display='none';
+$('#dmMin').onclick = ()=> $('#dmWin').style.display='none';
+$('#dmMax').onclick = ()=>{ state.dmMax = !state.dmMax; $('#dmWin').classList.toggle('dmMax', state.dmMax); };
+
 $('#iconAdmin').onclick = async ()=>{
   if (state.role!=='admin' && state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
-  await loadAdmin();
-  $('#adminPanel').style.display='flex';
+  await loadAdmin(); $('#adminPanel').style.display='flex';
 };
 $('#closeAdmin').onclick = ()=> $('#adminPanel').style.display='none';
 $('#btnRefreshAdmin').onclick = ()=> loadAdmin();
-$('#btnClearChat').onclick = async ()=>{ await post('/api/admin/clear', {}, true); alert('تم مسح الدردشة'); };
 
 async function loadAdmin(){
-  // المتصلون
   const list = await get('/api/admin/online', true);
   const wrap = $('#adminList'); wrap.innerHTML='';
-  if (!list.length){ wrap.textContent='لا يوجد متصلون.'; }
   list.forEach(u=>{
     const card = el('div','card'); card.style.marginBottom='8px';
-    const head = el('div','row'); head.innerHTML = `<strong style="color:${u.color};direction:ltr">${u.username}</strong> <span class="pill">role: ${u.role}</span>`;
-    const info = el('div','muted'); info.textContent = `deviceId: ${u.deviceId || '-'} · IP: ${u.ip || '-'}`;
+    card.innerHTML = `<div class="row" style="justify-content:space-between"><strong style="color:${u.color};direction:ltr">${u.username}</strong><span class="pill">role: ${u.role}</span></div>
+      <div class="muted">deviceId: ${u.deviceId || '-'} · IP: ${u.ip || '-'}</div>`;
     const actions = el('div','row');
-    const btnKick = el('button','iconbtn'); btnKick.type='button'; btnKick.textContent='طرد'; btnKick.onclick = ()=> post('/api/admin/kick', { deviceId: u.deviceId }, true).then(()=>alert('تم الطرد'));
-    const btnBanDev = el('button','iconbtn danger'); btnBanDev.type='button'; btnBanDev.textContent='حظر جهاز'; btnBanDev.onclick = ()=> post('/api/admin/ban', { targetType:'deviceId', targetValue: u.deviceId, reason:'admin', minutes:0 }, true).then(()=>alert('تم الحظر'));
-    const btnBanIp = el('button','iconbtn danger'); btnBanIp.type='button'; btnBanIp.textContent='حظر IP'; btnBanIp.onclick = ()=> post('/api/admin/ban', { targetType:'ip', targetValue: u.ip, reason:'admin', minutes:0 }, true).then(()=>alert('تم الحظر'));
-    const btnInfo = el('button','iconbtn'); btnInfo.type='button'; btnInfo.textContent='كشف معلومات'; btnInfo.onclick = async ()=>{ const d = await get('/api/admin/user-info?userId='+encodeURIComponent(u.userId), true); alert(`userId: ${d.userId}\nusername: ${d.username}\nrole: ${d.role}\ndeviceId: ${d.deviceId}\nIP: ${d.ip}\nlastSeen: ${new Date(d.lastSeenAt||0).toLocaleString()}`); };
-    actions.append(btnKick, btnBanDev, btnBanIp, btnInfo);
-    card.append(head, info, actions);
-    wrap.appendChild(card);
+    const k = el('button','iconbtn'); k.textContent='طرد'; k.onclick=()=> post('/api/admin/kick',{deviceId:u.deviceId,reason:'admin'},true).then(()=>alert('تم الطرد'));
+    const b1 = el('button','iconbtn danger'); b1.textContent='حظر جهاز'; b1.onclick=()=> post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId,reason:'admin',minutes:0},true).then(()=>alert('تم الحظر'));
+    const b2 = el('button','iconbtn danger'); b2.textContent='حظر IP'; b2.onclick=()=> post('/api/admin/ban',{targetType:'ip',targetValue:u.ip,reason:'admin',minutes:0},true).then(()=>alert('تم الحظر'));
+    actions.append(k,b1,b2); card.appendChild(actions); wrap.appendChild(card);
   });
 
-  // قائمة الحظر + زر فك الحظر
   const bans = await get('/api/admin/bans', true);
-  const bwrap = $('#banList'); bwrap.innerHTML = '';
-  if (!bans.length){ bwrap.textContent = 'لا يوجد محظورون.'; return; }
+  const bwrap = $('#banList'); bwrap.innerHTML='';
   bans.forEach(b=>{
-    const row = el('div','card');
-    const top = el('div','row');
-    top.innerHTML = `<span class="pill">النوع: ${b.type}</span><span class="pill">المفتاح: ${b.key}</span>`;
-    const info = el('div','muted'); info.textContent = `السبب: ${b.reason || '-'} · منذ: ${new Date(b.createdAt).toLocaleString()} ${b.expiresAt ? '· ينتهي: '+new Date(b.expiresAt).toLocaleString() : ''}`;
-    const actions = el('div','row');
-    const btnUnban = el('button','iconbtn'); btnUnban.type='button'; btnUnban.textContent='فك الحظر';
-    btnUnban.onclick = ()=> post('/api/admin/unban', { key: b.key }, true).then(()=>{ alert('تم فك الحظر عن: '+b.key); loadAdmin(); });
-    actions.append(btnUnban);
-    row.append(top, info, actions);
-    bwrap.appendChild(row);
+    const row = el('div','card'); row.style.marginBottom='8px';
+    row.innerHTML = `<div class="row"><span class="pill">النوع: ${b.type}</span><span class="pill">المفتاح: ${b.key}</span></div>
+    <div class="muted">السبب: ${b.reason||'-'} · منذ: ${new Date(b.createdAt).toLocaleString()} ${b.expiresAt?('· ينتهي: '+new Date(b.expiresAt).toLocaleString()):''}</div>`;
+    const un = el('button','iconbtn'); un.textContent='فك الحظر'; un.onclick=()=> post('/api/admin/unban',{key:b.key},true).then(()=>loadAdmin());
+    row.appendChild(un); bwrap.appendChild(row);
   });
 }
 
-// DM Icon
-$('#iconDM').onclick = ()=>{ const p=$('#dmPanel'); p.style.display = (p.style.display==='flex'?'none':'flex'); };
+// إرسال
+$('#send').onclick = sendMsg;
+$('#msg').addEventListener('keydown', e=>{
+  if (e.key === 'Enter'){ e.preventDefault(); sendMsg(); }
+});
+function sendMsg(){
+  const t=$('#msg').value.trim(); if(!t) return;
+  state.socket.emit('chat:msg', { text:t });
+  $('#msg').value=''; $('#msg').focus(); // يبقي الكيبورد مفتوح
+}
 
-// Send message
-$('#send').onclick = ()=>{ const t=$('#msg').value.trim(); if(!t) return; state.socket.emit('chat:msg', { text: t }); $('#msg').value=''; };
-
-// Login
+// دخول
+$('#loginQuick').onclick = ()=> doLogin('user');
+$('#loginAdmin').onclick = ()=> doLogin('admin');
 async function doLogin(kind){
   try{
     let data;
@@ -260,20 +296,17 @@ async function doLogin(kind){
     connectSocket();
   }catch(e){ alert(e.message || 'login failed'); }
 }
-$('#loginQuick').onclick = ()=> doLogin('user');
-$('#loginAdmin').onclick = ()=> doLogin('admin');
 
 function loadSocketClient(){
   return new Promise((resolve,reject)=>{
-    const existing = document.querySelector('script[data-sock="1"]');
-    if (existing){ resolve(); return; }
+    if (window.io) return resolve();
     const s = document.createElement('script');
-    s.dataset.sock = '1';
     s.src = state.base + '/socket.io/socket.io.js';
     s.onload = resolve; s.onerror = reject;
     document.head.appendChild(s);
   });
 }
+
 function connectSocket(){
   state.socket = io(state.base, { auth: { token: state.token } });
   state.socket.on('history', arr => { $('#messages').innerHTML=''; arr.forEach(pushMessage); });
@@ -283,10 +316,12 @@ function connectSocket(){
   state.socket.on('dm:new', rec => {
     if (state.dmWith && (rec.fromId===state.dmWith.userId || rec.toId===state.dmWith.userId)){
       const line = el('div'); line.textContent = (rec.fromId===state.dmWith.userId? state.dmWith.username : 'أنا') + ': ' + rec.text;
-      $('#dmMsgs').appendChild(line);
-      $('#dmMsgs').scrollTop = $('#dmMsgs').scrollHeight;
+      $('#dmBody').appendChild(line);
+      $('#dmBody').scrollTop = $('#dmBody').scrollHeight;
     }
   });
+  // رسائل نظام: join / kick / ban
+  state.socket.on('system', m => { if (m?.text) pushSystem(m.text); });
   state.socket.on('banned', info => { alert((info && info.reason) || 'banned'); state.socket.disconnect(); });
 }
 </script>
