@@ -1,4 +1,4 @@
-// server.js — serves page.html at "/" + API + Socket.IO
+// server.js — serves page.html at "/" + API + Socket.IO (with admin tools working)
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -25,15 +25,12 @@ const PORT = process.env.PORT || 10000;
 if ((process.env.TRUST_PROXY || '').toLowerCase() === 'true') app.set('trust proxy', 1);
 
 // middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy:false, crossOriginEmbedderPolicy:false }));
 app.use(cors({ origin: (process.env.FRONTEND_ORIGIN || '*').split(',').map(s => s.trim()), credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// serve page.html
+// serve page
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'page.html')));
 app.get('/healthz', (req,res)=>res.json({ok:true}));
 
@@ -41,20 +38,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const ROOM_NAME = 'غرفه العرب';
 const now = () => Date.now();
 
-// in-memory stores
-const users = new Map();        // userId -> { username, role, deviceId, passHash?, color, lastSeenAt }
+// in-memory
+const users = new Map();        // userId -> { username, role, deviceId, passHash?, color, lastSeenAt, lastIp }
 const usernameIndex = new Map();// username -> userId
 const deviceIndex = new Map();  // deviceId -> userId
 const onlineSockets = new Map();// socket.id -> { userId }
 const bans = new Map();         // key -> { type, reason, by, createdAt, expiresAt }
 const kicks = new Map();        // deviceId -> { by, reason, at }
-const history = [];             // [{from, userId, color, text, ts, mid}]
-const dmHistory = new Map();    // dmKey -> [{fromId,toId,text,ts,mid}]
+const history = [];
+const dmHistory = new Map();
+
 const englishOnly = s => /^[A-Za-z0-9_.-]{3,20}$/.test(s || '');
 const hasArabic = s => /[\u0600-\u06FF]/.test(s || '');
 const colorPool = ['#60a5fa','#f472b6','#f59e0b','#34d399','#a78bfa','#f87171','#22d3ee','#c084fc','#fb923c','#4ade80'];
 const pickColor = () => colorPool[Math.floor(Math.random()*colorPool.length)];
 const dmKey = (a,b) => [a,b].sort().join(':');
+const maskIp = ip => (ip||'').replace(/^(\d+\.\d+)\.\d+\.\d+/, '$1.*.*');
 
 // fixed admin
 const FIXED_ADMIN_USER = process.env.FIXED_ADMIN_USER || 'Admin';
@@ -64,13 +63,13 @@ async function ensureFixedAdmin(){
   const userId = nanoid(21);
   const passHash = await bcrypt.hash(FIXED_ADMIN_PASS, 10);
   const deviceId = 'fixed-admin-device';
-  users.set(userId, { username: FIXED_ADMIN_USER, role: 'admin', deviceId, passHash, color: '#ffffff', lastSeenAt: 0 });
+  users.set(userId, { username: FIXED_ADMIN_USER, role: 'admin', deviceId, passHash, color: '#ffffff', lastSeenAt: 0, lastIp: '' });
   usernameIndex.set(FIXED_ADMIN_USER, userId);
   deviceIndex.set(deviceId, userId);
   console.log('Fixed admin ready:', FIXED_ADMIN_USER);
 }
 
-// auth helpers
+// helpers
 const signToken = p => jwt.sign(p, JWT_SECRET, { expiresIn: '30d' });
 const authRequired = (req,res,next)=>{
   const token = (req.headers.authorization || '').replace('Bearer ', '');
@@ -83,7 +82,9 @@ const adminOrMod = (req,res,next)=>{
   res.status(403).json({ error:'forbidden' });
 };
 
-// REST
+// ===== REST =====
+
+// login admin (passworded)
 app.post('/api/login-pass', async (req,res)=>{
   let { username, password, deviceId } = req.body || {};
   username = (username || '').trim();
@@ -100,6 +101,7 @@ app.post('/api/login-pass', async (req,res)=>{
   res.json({ ok:true, token, userId:id, role:u.role, deviceId:devId, username:u.username, color:u.color || '#fff' });
 });
 
+// quick login
 app.post('/api/login', (req,res)=>{
   let { username, deviceId } = req.body || {};
   username = (username || '').trim();
@@ -118,7 +120,7 @@ app.post('/api/login', (req,res)=>{
     }else{
       userId = nanoid(21);
       const devId = deviceId || nanoid(16);
-      users.set(userId, { username, role:'user', deviceId: devId, color: pickColor(), lastSeenAt: 0 });
+      users.set(userId, { username, role:'user', deviceId: devId, color: pickColor(), lastSeenAt: 0, lastIp: '' });
       usernameIndex.set(username, userId); deviceIndex.set(devId, userId);
     }
   } else {
@@ -131,10 +133,46 @@ app.post('/api/login', (req,res)=>{
   res.json({ ok:true, token, userId, role:u.role, deviceId: u.deviceId, username: u.username, color:u.color });
 });
 
+// me
 app.get('/api/me', authRequired, (req,res)=>{
   const u = users.get(req.user.userId);
   if (!u) return res.status(404).json({ error:'User not found' });
   res.json({ userId:req.user.userId, username:u.username, role:u.role, deviceId:u.deviceId, color:u.color });
+});
+
+// ==== Admin APIs ====
+app.get('/api/admin/online', authRequired, adminOrMod, (req,res)=>{
+  // قائمة المتصلين مع معلومات كافية للإدارة
+  const list = [];
+  const seen = new Set();
+  for (const { userId } of onlineSockets.values()){
+    if (seen.has(userId)) continue; seen.add(userId);
+    const u = users.get(userId);
+    if (!u) continue;
+    list.push({
+      userId,
+      username: u.username,
+      role: u.role,
+      deviceId: u.deviceId || '',
+      ip: u.lastIp || '',     // يظهر للمشرف فقط
+      color: u.color || '#fff'
+    });
+  }
+  res.json(list);
+});
+
+app.get('/api/admin/user-info', authRequired, adminOrMod, (req,res)=>{
+  const id = (req.query.userId || '').toString();
+  const u = users.get(id);
+  if (!u) return res.status(404).json({ error:'no user' });
+  res.json({
+    userId: id,
+    username: u.username,
+    role: u.role,
+    deviceId: u.deviceId || '',
+    ip: u.lastIp || '',
+    lastSeenAt: u.lastSeenAt || 0
+  });
 });
 
 app.get('/api/admin/bans', authRequired, adminOrMod, (req,res)=>{
@@ -143,6 +181,7 @@ app.get('/api/admin/bans', authRequired, adminOrMod, (req,res)=>{
 app.get('/api/admin/kicks', authRequired, adminOrMod, (req,res)=>{
   res.json(Array.from(kicks, ([key,val])=>({ key, ...val })));
 });
+
 app.post('/api/admin/ban', authRequired, adminOrMod, (req,res)=>{
   const { targetType, targetValue, reason, minutes } = req.body || {};
   if (!['userId','deviceId','ip'].includes(targetType)) return res.status(400).json({ error:'invalid type' });
@@ -179,7 +218,7 @@ app.post('/api/admin/clear', authRequired, adminOrMod, (req,res)=>{
   history.length = 0; io.to(ROOM_NAME).emit('admin:clear'); res.json({ ok:true });
 });
 
-// socket.io
+// ==== Socket.IO ====
 io.use((socket, next)=>{
   try{ socket.user = jwt.verify(socket.handshake.auth?.token, JWT_SECRET); next(); }
   catch{ next(new Error('unauthorized')); }
@@ -188,9 +227,13 @@ io.on('connection', (socket)=>{
   const { userId } = socket.user || {};
   const u = users.get(userId); if (!u) return socket.disconnect(true);
 
-  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim() || socket.request.socket.remoteAddress || '0.0.0.0';
-  const banned = [u.deviceId, userId, ip].map(k=>bans.get(k)).find(b=>b && (!b.expiresAt || b.expiresAt > now()));
-  if (banned){ socket.emit('banned', { reason: banned.reason || 'banned' }); return socket.disconnect(true); }
+  const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
+           || socket.request.socket.remoteAddress || '0.0.0.0';
+  u.lastIp = ip;  // نخزنها للإدارة فقط
+
+  // حظر فعّال؟
+  const active = [u.deviceId, userId, ip].map(k=>bans.get(k)).find(b=>b && (!b.expiresAt || b.expiresAt > now()));
+  if (active){ socket.emit('banned', { reason: active.reason || 'banned' }); return socket.disconnect(true); }
 
   socket.join(ROOM_NAME);
   onlineSockets.set(socket.id, { userId });
@@ -223,37 +266,6 @@ io.on('connection', (socket)=>{
     for (const [sid, meta] of onlineSockets.entries()){
       if (meta.userId===userId || meta.userId===toId){ const s = io.sockets.sockets.get(sid); s && s.emit('dm:new', rec); }
     }
-  });
-
-  socket.on('admin:ban', data=>{
-    const caller = users.get(userId);
-    if (!caller || (caller.role!=='admin' && caller.role!=='mod')) return;
-    const { targetType, targetValue, reason, minutes } = data || {};
-    if (!['userId','deviceId','ip'].includes(targetType)) return;
-    bans.set(targetValue, { type:targetType, reason:reason||'', by:userId, createdAt: now(), expiresAt: minutes ? now()+minutes*60*1000 : null });
-    io.to(ROOM_NAME).emit('admin:update');
-  });
-  socket.on('admin:kick', data=>{
-    const caller = users.get(userId);
-    if (!caller || (caller.role!=='admin' && caller.role!=='mod')) return;
-    const dv = data?.deviceId; if (!dv) return;
-    kicks.set(dv, { by:userId, reason:data?.reason||'', at: now() });
-    for (const [sid, meta] of onlineSockets.entries()){
-      const t = users.get(meta.userId);
-      if (t?.deviceId===dv){ const s = io.sockets.sockets.get(sid); s && s.disconnect(true); }
-    }
-  });
-  socket.on('admin:role', data=>{
-    const caller = users.get(userId);
-    if (!caller || caller.role!=='admin') return;
-    const { targetUserId, role } = data || {};
-    if (!['user','mod','admin'].includes(role)) return;
-    const t = users.get(targetUserId); if (!t) return; t.role = role; io.to(ROOM_NAME).emit('admin:update');
-  });
-  socket.on('admin:clear', ()=>{
-    const caller = users.get(userId);
-    if (!caller || (caller.role!=='admin' && caller.role!=='mod')) return;
-    history.length = 0; io.to(ROOM_NAME).emit('admin:clear');
   });
 
   socket.on('disconnect', ()=>{
