@@ -25,7 +25,10 @@ const PORT = process.env.PORT || 10000;
 if ((process.env.TRUST_PROXY || '').toLowerCase() === 'true') app.set('trust proxy', 1);
 
 // middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({ origin: (process.env.FRONTEND_ORIGIN || '*').split(',').map(s => s.trim()), credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
