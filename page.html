@@ -8,14 +8,13 @@
     :root{
       --bg:#0d0d0d; --fg:#f4f4f5; --muted:#9ca3af; --card:#141414; --border:#2a2a2a;
       --accent:#4cafef; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+      --kb: 0px; /* ارتفاع الكيبورد (يُحدَّث من JS) */
     }
     *{box-sizing:border-box}
     html,body{height:100dvh}
-    body{
-      margin:0; background:var(--bg); color:var(--fg);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto; display:flex; flex-direction:column;
-      -webkit-overflow-scrolling:touch;
-    }
+    body{ margin:0; background:var(--bg); color:var(--fg);
+          font-family:system-ui,-apple-system,Segoe UI,Roboto; display:flex; flex-direction:column;
+          -webkit-overflow-scrolling:touch; }
 
     header.app{position:sticky;top:0;background:var(--bg);padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;z-index:10}
     .title{font-weight:700}
@@ -24,6 +23,8 @@
     .wrap{max-width:740px;margin:0 auto;min-height:100%;width:100%}
     .login{padding:16px;display:flex;gap:12px;flex-wrap:wrap}
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;flex:1 1 300px}
+    input,button{font-size:16px; line-height:1.25}
+    input:focus{outline:none; border-color:#6ee7b7; box-shadow:0 0 0 2px rgba(110,231,183,.15)}
 
     /* الرسائل + حضور */
     #presence{display:flex;gap:6px;overflow:auto;padding:8px}
@@ -35,13 +36,14 @@
     .bubble{display:inline-block;background:#101010;border:1px solid var(--border);border-radius:12px;padding:10px;max-width:92%}
     .system{color:#cbd5e1;font-style:italic}
 
-    /* شريط الكتابة */
+    /* شريط الكتابة — يتم ضبطه ديناميكيًا مع الكيبورد */
     .composer{
       position:fixed; left:0; right:0; bottom:50px; display:flex; gap:8px; align-items:center;
       background:#111; border-top:1px solid var(--border); padding:8px 10px; z-index:20;
       max-width:740px; margin:0 auto;
     }
     #msg{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:#000;color:#fff;font-size:17px}
+
     .btn{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;font-size:16px;cursor:pointer}
     .btn.ghost{background:transparent;color:#d4d4d8}
 
@@ -72,8 +74,6 @@
     .dmMax{inset:0 !important; position:fixed !important; width:auto !important; height:auto !important; max-width:none !important; border-radius:0 !important}
 
     /* iOS zoom fix */
-    input,textarea,select,button{font-size:16px; line-height:1.25}
-    input:focus,textarea:focus{outline:none; border-color:#6ee7b7; box-shadow:0 0 0 2px rgba(110,231,183,.15)}
     @supports (-webkit-touch-callout:none){ input,textarea,select,button{font-size:16px!important} #msg{font-size:17px!important} }
   </style>
 </head>
@@ -90,16 +90,16 @@
     <div class="card">
       <h3>تسجيل دخول (مستخدم)</h3>
       <label>اسم إنجليزي</label>
-      <input id="u" placeholder="Guest123">
+      <input id="u" placeholder="Guest123"><!-- حتى لو فاضي → يصير Guest -->
       <button id="loginQuick" class="btn" type="button">دخول</button>
       <p class="muted">الأسماء العربية تتحول تلقائيًا إلى Guest.</p>
     </div>
     <div class="card">
       <h3>دخول المشرف</h3>
       <label>الاسم</label>
-      <input id="au" value="Admin">
+      <input id="au" placeholder="Admin"><!-- أزلنا القيمة الافتراضية -->
       <label>كلمة السر</label>
-      <input id="ap" type="password" value="1200@">
+      <input id="ap" type="password" placeholder="••••••"><!-- أزلنا 1200@ الظاهرة -->
       <button id="loginAdmin" class="btn" type="button">دخول المشرف</button>
     </div>
   </section>
@@ -215,6 +215,31 @@ async function get(path, auth=true){
   const r=await fetch(state.base+path,{headers:h}); const d=await r.json(); if(d.error) throw new Error(d.error); return d;
 }
 
+/* ===== iPhone keyboard/viewport fix ===== */
+function adjustViewport(){
+  const vv = window.visualViewport;
+  let kb = 0;
+  if (vv){
+    // keyboard height approximation
+    kb = Math.max(0, (window.innerHeight - vv.height - vv.offsetTop));
+  }
+  document.documentElement.style.setProperty('--kb', kb+'px');
+  placeBars();
+}
+function placeBars(){
+  const kb = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--kb'))||0;
+  const composer = $('#composer');
+  if (!composer) return;
+  // ضع المؤلف فوق الكيبورد إن وُجد، وإلا فوق الشريط
+  composer.style.bottom = (kb > 0 ? kb : 50) + 'px';
+  // مساحة أسفل الرسائل = ارتفاع المؤلف + (كيبور/شريط) + هامش صغير
+  const mb = composer.offsetHeight + (kb > 0 ? kb : 50) + 10;
+  $('#messages').style.marginBottom = mb + 'px';
+}
+window.visualViewport && visualViewport.addEventListener('resize', adjustViewport);
+window.addEventListener('orientationchange', adjustViewport);
+window.addEventListener('resize', adjustViewport);
+
 /* ===== UI ===== */
 function setLoggedIn(me){
   state.me = me; state.role = me.role; state.color = me.color || '#fff';
@@ -223,6 +248,7 @@ function setLoggedIn(me){
   $('#composer').style.display='flex';
   $('#nav').style.display='flex';
   $('#msg').focus();
+  setTimeout(adjustViewport, 0);
 }
 function pushSystem(text){
   const m=el('div','msg system'); m.textContent=text; $('#messages').appendChild(m);
@@ -238,6 +264,7 @@ function pushMessage(m){
   const bubble=el('div','bubble'); bubble.textContent=m.text;
   wrap.append(meta,bubble); $('#messages').appendChild(wrap);
   $('#messages').scrollTop = $('#messages').scrollHeight;
+  placeBars();
 }
 function renderPresence(list){
   state.presence = list;
@@ -247,7 +274,7 @@ function renderPresence(list){
     b.onclick=()=> openUserMenu(u.userId,u.username);
     box.appendChild(b);
   });
-  // حدّث قائمة الخاص بالمودال
+  // حدّث قائمة الخاص
   const dl=$('#dmList'); dl.innerHTML='';
   list.forEach(u=>{
     if(u.userId===state.me?.userId) return;
@@ -258,7 +285,7 @@ function renderPresence(list){
   });
 }
 
-/* ===== User action sheet / Admin tools ===== */
+/* ===== User menu / Admin tools (مع كشف معلومات) ===== */
 async function openUserMenu(userId, username){
   const wrap=el('div','modal'); const sheet=el('div','sheet'); wrap.appendChild(sheet);
   const row=el('div','row'); sheet.appendChild(row);
@@ -270,10 +297,11 @@ async function openUserMenu(userId, username){
 
   if(state.role==='admin'||state.role==='mod'){
     const admin=el('div','row'); admin.style.marginTop='8px';
+    const info=el('button','btn ghost'); info.textContent='كشف معلومات'; info.onclick=async()=>{ const d=await get('/api/admin/user-info?userId='+encodeURIComponent(userId),true); alert(`userId: ${d.userId}\nusername: ${d.username}\nrole: ${d.role}\ndeviceId: ${d.deviceId}\nIP: ${d.ip}\nlastSeen: ${new Date(d.lastSeenAt||0).toLocaleString()}`); };
     const kick=el('button','btn'); kick.textContent='طرد'; kick.onclick=async()=>{ const list=await get('/api/admin/online',true); const u=list.find(x=>x.userId===userId); if(!u) return alert('غير متصل'); await post('/api/admin/kick',{deviceId:u.deviceId,reason:'by admin'},true); wrap.remove(); };
     const banDev=el('button','btn'); banDev.textContent='حظر جهاز'; banDev.onclick=async()=>{ const list=await get('/api/admin/online',true); const u=list.find(x=>x.userId===userId); if(!u) return alert('غير متصل'); await post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId,reason:'admin',minutes:0},true); wrap.remove(); };
     const banIp=el('button','btn'); banIp.textContent='حظر IP'; banIp.onclick=async()=>{ const list=await get('/api/admin/online',true); const u=list.find(x=>x.userId===userId); if(!u) return alert('غير متصل'); await post('/api/admin/ban',{targetType:'ip',targetValue:u.ip,reason:'admin',minutes:0},true); wrap.remove(); };
-    admin.append(kick,banDev,banIp); sheet.appendChild(admin);
+    admin.append(info,kick,banDev,banIp); sheet.appendChild(admin);
   }
   wrap.onclick=(e)=>{ if(e.target===wrap) document.body.removeChild(wrap); };
   document.body.appendChild(wrap); wrap.style.display='flex';
@@ -306,7 +334,8 @@ $('#msg').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault
 function sendMsg(){
   const t=$('#msg').value.trim(); if(!t) return;
   state.socket.emit('chat:msg',{text:t});
-  $('#msg').value=''; $('#msg').focus(); // يبقي الكيبورد مفتوح
+  $('#msg').value=''; $('#msg').focus();
+  placeBars();
 }
 
 /* ===== Auth + Socket ===== */
@@ -317,9 +346,10 @@ async function doLogin(kind){
   try{
     let data;
     if(kind==='admin'){
-      data = await post('/api/login-pass',{ username:$('#au').value.trim(), password:$('#ap').value, deviceId:deviceId() }, false);
+      data = await post('/api/login-pass',{ username:($('#au').value||'').trim(), password:$('#ap').value, deviceId:deviceId() }, false);
     }else{
-      data = await post('/api/login',{ username:$('#u').value.trim(), deviceId:deviceId() }, false);
+      // حتى لو فاضي أو عربي — السيرفر يحوله Guest تلقائيًا
+      data = await post('/api/login',{ username:($('#u').value||'').trim(), deviceId:deviceId() }, false);
     }
     state.token=data.token;
     setLoggedIn({ userId:data.userId, username:data.username, role:data.role, color:data.color });
@@ -346,34 +376,38 @@ function connectSocket(){
     }
   });
   state.socket.on('banned', info=>{ alert((info&&info.reason)||'banned'); state.socket.disconnect(); });
+  adjustViewport();
 }
 
-/* ===== Admin Panel entry (optional list) ===== */
+/* ===== Admin quick list under settings ===== */
 $('#iconAdmin').onclick = async ()=>{
   if(state.role!=='admin' && state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
-  // نعرض قائمة بسيطة بالمتصلين + الحظر (تنفيذ سريع داخل نافذة الضبط)
   open('#settingsModal');
-  const box = document.createElement('div'); box.className='card'; box.style.marginTop='10px';
+  const sheet = document.querySelector('#settingsModal .sheet');
+  // امسح أي لوائح قديمة
+  sheet.querySelectorAll('.card.__admin').forEach(n=>n.remove());
+
+  const box = document.createElement('div'); box.className='card __admin'; box.style.marginTop='10px';
   box.innerHTML = '<div class="row"><span class="badge">المتصلون</span></div>';
   const list = await get('/api/admin/online', true);
   list.forEach(u=>{
     const row=el('div','row'); row.style.marginTop='6px';
     const n=el('strong'); n.style.color=u.color||'#fff'; n.style.direction='ltr'; n.textContent=u.username;
+    const info=el('button','btn ghost'); info.textContent='كشف معلومات'; info.onclick=async()=>{ const d=await get('/api/admin/user-info?userId='+encodeURIComponent(u.userId),true); alert(`userId: ${d.userId}\nusername: ${d.username}\nrole: ${d.role}\ndeviceId: ${d.deviceId}\nIP: ${d.ip}\nlastSeen: ${new Date(d.lastSeenAt||0).toLocaleString()}`); };
     const k=el('button','btn'); k.textContent='طرد'; k.onclick=()=> post('/api/admin/kick',{deviceId:u.deviceId,reason:'admin'},true);
     const b1=el('button','btn'); b1.textContent='حظر جهاز'; b1.onclick=()=> post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId,reason:'admin',minutes:0},true);
     const b2=el('button','btn'); b2.textContent='حظر IP'; b2.onclick=()=> post('/api/admin/ban',{targetType:'ip',targetValue:u.ip,reason:'admin',minutes:0},true);
-    row.append(n,k,b1,b2); box.appendChild(row);
+    row.append(n,info,k,b1,b2); box.appendChild(row);
   });
-  // bans
-  const bwrap=document.createElement('div'); bwrap.className='card'; bwrap.style.marginTop='10px';
-  bwrap.innerHTML='<div class="row"><span class="badge">قائمة الحظر</span></div>';
+  const bansBox=document.createElement('div'); bansBox.className='card __admin'; bansBox.style.marginTop='10px';
+  bansBox.innerHTML='<div class="row"><span class="badge">قائمة الحظر</span></div>';
   const bans=await get('/api/admin/bans',true);
   bans.forEach(b=>{
     const r=el('div','row'); r.style.marginTop='6px'; r.innerHTML=`<span class="badge">${b.type}</span><span class="badge">${b.key}</span>`;
     const un=el('button','btn'); un.textContent='فك الحظر'; un.onclick=()=> post('/api/admin/unban',{key:b.key},true).then(()=>$('#settingsModal').click());
-    bwrap.appendChild(r); bwrap.appendChild(un);
+    bansBox.appendChild(r); bansBox.appendChild(un);
   });
-  $('.sheet').appendChild(box); $('.sheet').appendChild(bwrap);
+  sheet.appendChild(box); sheet.appendChild(bansBox);
 };
 </script>
 </body>
