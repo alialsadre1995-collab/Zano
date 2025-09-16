@@ -30,7 +30,7 @@
   .sys{color:#9fb4c7;font-style:italic;margin:6px 0;white-space:pre-wrap}
   .row{margin:10px 0}
   .head{display:flex;gap:6px;align-items:baseline;direction:ltr;text-align:left} /* الاسم يسار */
-  .nick{color:#5fc3ff;font-weight:700}
+  .nick{color:#5fc3ff;font-weight:700;cursor:pointer}
   .time{color:var(--muted);font-size:12px}
   .txt{white-space:pre-wrap;word-break:break-word}
 
@@ -52,6 +52,7 @@
 
   .b{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#0b0e14;color:#d8e0ea;cursor:pointer}
   .b.danger{background:#270b0b;color:#f6caca;border-color:#3a0d0d}
+  .b.warn{background:#221a05;color:#fcd174;border-color:#3a2b07}
 
   /* نافذة الخاص */
   .dm{position:fixed;right:10px;bottom:76px;width:340px;max-width:92vw;display:none;flex-direction:column;background:#0f1218;border:1px solid var(--line);border-radius:12px;z-index:40;box-shadow:0 12px 32px rgba(0,0,0,.55)}
@@ -72,6 +73,14 @@
   .loginCard .btn{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018;cursor:pointer}
   .loginCard .ghost{background:transparent;color:#d8e0ea}
 
+  /* نافذة إدارية بسيطة */
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:50}
+  .sheetBox{max-width:780px;margin:8vh auto;background:#0f1218;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .sheetHd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .sheetBd{max-height:60vh;overflow:auto}
+  .rowAdmin{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tag{border:1px solid var(--line);border-radius:999px;padding:4px 8px;color:#9ed0ff}
+
   @supports (-webkit-touch-callout:none){
     input,textarea,select,button{font-size:16px!important}
   }
@@ -84,8 +93,8 @@
     <span class="badge" id="badgeCnt">0</span>
     <span class="chan">#العرب</span>
     <div class="icons">
-      <div class="ic" id="btnPeople">👥</div>
       <div class="ic" id="btnInfo">ℹ️</div>
+      <div class="ic" id="btnPeople">👥</div>
       <div class="ic" id="btnAdmin">🛡️</div>
     </div>
   </div>
@@ -150,6 +159,19 @@
   </div>
 </div>
 
+<!-- لوحة الإدارة: قائمة الحظر + فك حظر -->
+<div class="sheet" id="sheet">
+  <div class="sheetBox">
+    <div class="sheetHd">
+      <strong>لوحة الإدارة</strong>
+      <button class="b" id="sheetX">إغلاق</button>
+    </div>
+    <div class="sheetBd" id="sheetBd">
+      <div class="rowAdmin"><em>يتم تحميل قائمة الحظر…</em></div>
+    </div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 /* ===== مساعدات عامة ===== */
@@ -176,10 +198,8 @@ async function doLogin(kind){
     state.me={userId:data.userId, username:data.username};
     state.role=data.role;
 
-    // إخفاء شاشة الدخول
+    // إخفاء شاشة الدخول + ترحيب طويل (أربع أسطر)
     $('#loginOv').style.display='none';
-
-    // رسالة ترحيب طويلة بأربع أسطر وملصقات
     pushSys(
 `أهلاً وسهلاً بك في غرفة العرب — نتمنّى لك وقتًا ممتعًا 🤝
 ❤️😍🥳
@@ -202,7 +222,7 @@ function connectSocket(){
 
   state.socket.on('history', arr=>{ $('#messages').innerHTML=''; arr.forEach(pushLine); forceStick(); });
   state.socket.on('chat:new', pushLine);
-  state.socket.on('presence', renderPresence);
+  state.socket.on('presence', list=>{ renderPresence(list); cacheUsers(list); });
   state.socket.on('system', m=> pushSys(m.text||''));
   state.socket.on('admin:clear', ()=> $('#messages').innerHTML='');
   state.socket.on('banned', info=>{ alert((info&&info.reason)||'تم الحظر'); state.socket.disconnect(); });
@@ -223,11 +243,12 @@ const M = ()=> document.getElementById('messages');
 function isNearBottom(el,tol=6){ return (el.scrollHeight - el.scrollTop - el.clientHeight) <= tol; }
 let _stick = true;
 
-// تمرير بالقوة بعد 3 إطارات (يعالج تأخر الآيفون مع الكيبورد)
+// تمرير بالقوة 5 إطارات لمعالجة تأخر iOS
 function forceStick(){
   const el=M(); if(!el) return;
-  const s=()=>{ el.scrollTop = el.scrollHeight; };
-  requestAnimationFrame(()=>{ s(); requestAnimationFrame(()=>{ s(); requestAnimationFrame(s); }); });
+  let tries=0;
+  function step(){ el.scrollTop = el.scrollHeight; if(++tries<5) requestAnimationFrame(step); }
+  requestAnimationFrame(step);
 }
 function stickToBottom(force=false){ if(force || _stick) forceStick(); }
 
@@ -235,10 +256,24 @@ function pushSys(t){
   const s=el('div','sys'); s.textContent='→ '+t;
   M().appendChild(s); stickToBottom(true);
 }
+
+// خريطة معلومات المستخدمين حسب الاسم
+const userIndex=new Map(); // username => userObj
+function cacheUsers(list){ list.forEach(u=> userIndex.set(u.username,u)); }
+
 function pushLine(m){
   const row=el('div','row');
   const head=el('div','head');
-  head.innerHTML=`<span class="nick" style="color:${m.color||'#5fc3ff'}">${m.from}</span><span class="time">${new Date(m.ts).toLocaleTimeString()}</span>`;
+  const nameEl=document.createElement('span');
+  nameEl.className='nick';
+  nameEl.style.color=m.color||'#5fc3ff';
+  nameEl.textContent=m.from;
+  nameEl.dataset.username=m.from;
+  if(m.userId) nameEl.dataset.userId = m.userId;
+  nameEl.addEventListener('click', ()=> openUserMenuByName(nameEl.dataset.username));
+  const timeEl=document.createElement('span'); timeEl.className='time'; timeEl.textContent=new Date(m.ts).toLocaleTimeString();
+  head.append(nameEl,timeEl);
+
   const txt=el('div','txt'); txt.textContent=m.text;
   row.append(head,txt); M().appendChild(row); stickToBottom(true);
 }
@@ -263,6 +298,10 @@ $('#closeDrawer').onclick = ()=> $('#drawer').style.display='none';
 $('#drawer').onclick = (e)=>{ if(e.target.id==='drawer') $('#drawer').style.display='none'; };
 
 /* ===== قائمة المستخدم + أدوات الإدارة ===== */
+function openUserMenuByName(username){
+  const u = userIndex.get(username) || { username };
+  userMenu(u);
+}
 function userMenu(u){
   const m=document.createElement('div');
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:40';
@@ -274,12 +313,18 @@ function userMenu(u){
     </div>`;
   const row=document.createElement('div'); row.style.display='flex'; row.style.flexWrap='wrap'; row.style.gap='8px'; row.style.marginTop='10px';
 
-  const openDM = btn('فتح خاص', ()=>{ m.remove(); showDM(u.userId, u.username); });
-  row.appendChild(openDM);
+  // رد على رسالة
+  const reply=btn('رد على رسالة', ()=>{
+    const inp=$('#msg'); inp.value = (inp.value?inp.value+'\n':'') + `@${u.username}: `;
+    inp.focus(); m.remove();
+  });
+  const openDM = btn('فتح خاص', ()=>{ m.remove(); showDM(u.userId||u.username, u.username); });
+  row.append(reply, openDM);
 
   if(state.role==='admin'||state.role==='mod'){
     const info=btn('كشف معلومات', async ()=>{
-      const d=await get('/api/admin/user-info?userId='+encodeURIComponent(u.userId),true);
+      const key = u.userId ? ('userId='+encodeURIComponent(u.userId)) : ('username='+encodeURIComponent(u.username));
+      const d=await get('/api/admin/user-info?'+key,true);
       alert(`userId: ${d.userId}\nusername:${d.username}\nrole:${d.role}\ndevice:${d.deviceId}\nIP:${d.ip}`);
     });
     const kick=btn('طرد', ()=> post('/api/admin/kick',{deviceId:u.deviceId,reason:'admin'},true));
@@ -322,13 +367,41 @@ function send(){
   stickToBottom(true);
 }
 
-/* ===== أزرار الرأس ===== */
-$('#btnInfo').onclick = ()=> alert('#العرب — غرفة دردشة داكنة بسيطة');
+/* ===== لوحة الإدارة: عرض الحظر + فك الحظر ===== */
 $('#btnAdmin').onclick = async ()=>{
   if(state.role!=='admin'&&state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
-  const bans = await get('/api/admin/bans', true);
-  alert(`قائمة الحظر: ${bans.length} عنصر`);
+  $('#sheet').style.display='block';
+  const bd=$('#sheetBd'); bd.innerHTML='<div class="rowAdmin"><em>يتم تحميل قائمة الحظر…</em></div>';
+  try{
+    const bans = await get('/api/admin/bans', true); // [{targetType:'deviceId'|'ip', targetValue:'...', username?, ts?}, ...]
+    bd.innerHTML='';
+    if(!bans.length){ bd.innerHTML='<div class="rowAdmin"><em>لا توجد عناصر في الحظر.</em></div>'; return; }
+    bans.forEach(b=>{
+      const r=el('div','rowAdmin');
+      r.innerHTML = `
+        <span class="tag">${b.targetType==='ip'?'IP':'جهاز'}</span>
+        <strong style="direction:ltr">${b.targetValue||''}</strong>
+        ${b.username?`<span class="tag" style="color:#ddd"> ${b.username} </span>`:''}
+        <span style="color:var(--muted);font-size:12px">${b.ts?new Date(b.ts).toLocaleString():''}</span>
+      `;
+      const un=el('button','b warn'); un.textContent='فك حظر';
+      un.onclick=async()=>{
+        try{
+          await post('/api/admin/unban',{targetType:b.targetType,targetValue:b.targetValue},true);
+          r.remove();
+        }catch(e){ alert(e.message||'فشل فك الحظر'); }
+      };
+      r.appendChild(un);
+      bd.appendChild(r);
+    });
+  }catch(e){
+    bd.innerHTML='<div class="rowAdmin"><em>تعذر جلب القائمة.</em></div>';
+  }
 };
+$('#sheetX').onclick=()=> $('#sheet').style.display='none';
+
+/* ===== أزرار الرأس ===== */
+$('#btnInfo').onclick = ()=> alert('#العرب — غرفة دردشة داكنة بسيطة');
 
 /* ===== تخطيط وكيبورد iOS ===== */
 function layout(){
