@@ -18,15 +18,11 @@
     input,button,select,textarea{background:#101016;color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:12px}
     button{cursor:pointer}
     .muted{color:var(--muted)}
-    /* Login screens (mobile-first) */
     .login{padding:16px;display:flex;flex-direction:column;gap:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:520px){ .grid{grid-template-columns:1fr 1fr} }
-    /* Chat layout */
     .chat{display:flex;flex-direction:column;gap:12px;padding:12px}
     .roomBanner{display:flex;align-items:center;gap:8px}
-    .space{height:8px}
     .messages{flex:1;min-height:50vh;max-height:55vh;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:10px;background:#0e0e14}
     .msg{margin-bottom:8px}
     .meta{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
@@ -34,20 +30,14 @@
     .bubble{display:inline-block;margin-top:4px;background:#12121a;border:1px solid var(--border);padding:10px;border-radius:12px;max-width:95%}
     .composer{position:sticky;bottom:0;display:flex;gap:8px;align-items:center}
     .composer input{flex:1}
-    .rowbar{display:flex;gap:8px;overflow:auto}
-    .pill{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:12px}
-    .badge{font-size:11px;border:1px solid var(--border);padding:2px 8px;border-radius:999px}
-    /* Presence */
     .presence{display:flex;gap:6px;overflow:auto}
     .presence .user{border:1px solid var(--border);border-radius:999px;padding:6px 8px;font-size:12px;white-space:nowrap}
-    /* DM panel */
     .dm-panel{position:fixed;inset:auto 0 0 0;background:#0d0d12;border-top:1px solid var(--border);padding:10px;display:none;z-index:20}
     .dm-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
     .dm-messages{max-height:35vh;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:8px;background:#0e0e14}
     .dm-composer{display:flex;gap:8px;margin-top:8px}
-    /* Action sheet */
     .sheet{position:fixed;left:0;right:0;bottom:0;background:#0d0d12;border-top:1px solid var(--border);border-radius:12px 12px 0 0;padding:12px;display:none;z-index:30}
-    .sheet .row{flex-direction:column}
+    .sheet .row{display:flex;flex-direction:column;gap:8px}
   </style>
 </head>
 <body>
@@ -55,8 +45,8 @@
   <header class="app">
     <div class="title">غرفه العرب</div>
     <div class="icons">
-      <button class="iconbtn" id="iconAdmin">🛡️</button>
-      <button class="iconbtn" id="iconDM">💬</button>
+      <button class="iconbtn" id="iconAdmin" type="button">🛡️</button>
+      <button class="iconbtn" id="iconDM" type="button">💬</button>
     </div>
   </header>
 
@@ -67,7 +57,7 @@
         <h3>تسجيل دخول (جوال)</h3>
         <label>اسم المستخدم (إنجليزي فقط):</label>
         <input id="u" placeholder="Guest123">
-        <button id="loginQuick">دخول</button>
+        <button id="loginQuick" type="button">دخول</button>
         <p class="muted">سيتحوّل الاسم العربي تلقائيًا إلى Guest.</p>
       </div>
       <div class="card">
@@ -76,7 +66,7 @@
         <input id="au" value="Admin">
         <label>كلمة السر</label>
         <input id="ap" type="password" value="1200@">
-        <button id="loginAdmin">دخول المشرف</button>
+        <button id="loginAdmin" type="button">دخول المشرف</button>
       </div>
     </div>
   </section>
@@ -84,7 +74,6 @@
   <!-- CHAT -->
   <section id="chat" class="chat" style="display:none">
     <div class="roomBanner">
-      <span class="badge">غرفة واحدة: غرفه العرب</span>
       <span id="me" class="muted"></span>
     </div>
 
@@ -93,7 +82,7 @@
 
     <div class="composer">
       <input id="msg" placeholder="اكتب رسالة...">
-      <button id="send">إرسال</button>
+      <button id="send" type="button">إرسال</button>
     </div>
   </section>
 
@@ -102,13 +91,13 @@
     <div class="dm-header">
       <strong id="dmTitle">خاص مع …</strong>
       <div>
-        <button class="iconbtn" id="closeDM">إغلاق</button>
+        <button class="iconbtn" id="closeDM" type="button">إغلاق</button>
       </div>
     </div>
     <div id="dmMsgs" class="dm-messages"></div>
     <div class="dm-composer">
       <input id="dmInput" placeholder="اكتب رسالة خاصة...">
-      <button id="dmSend">إرسال</button>
+      <button id="dmSend" type="button">إرسال</button>
     </div>
   </section>
 
@@ -121,19 +110,13 @@
 
 <script>
 const state = {
-  base: '', token: null, me: null, socket: null,
+  base: location.origin, // تلقائيًا نفس الدومين
+  token: null, me: null, socket: null,
   selectedUser: null, dmWith: null, role: 'user', color:'#fff'
 };
-const ROOM = 'غرفه العرب';
-
 const $ = sel => document.querySelector(sel);
 const el = (t,cls) => { const x=document.createElement(t); if(cls) x.className=cls; return x; };
-
-function deviceId(){
-  let id = localStorage.getItem('deviceId');
-  if (!id){ id = (crypto.randomUUID && crypto.randomUUID()) || Math.random().toString(36).slice(2); localStorage.setItem('deviceId', id); }
-  return id;
-}
+const deviceId = ()=>{ let id = localStorage.getItem('deviceId'); if(!id){ id=(crypto.randomUUID&&crypto.randomUUID())||Math.random().toString(36).slice(2); localStorage.setItem('deviceId',id);} return id; };
 
 async function post(path, body){
   const res = await fetch(state.base + path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) });
@@ -141,9 +124,7 @@ async function post(path, body){
 }
 
 function setLoggedIn(me){
-  state.me = me;
-  state.role = me.role;
-  state.color = me.color || '#fff';
+  state.me = me; state.role = me.role; state.color = me.color || '#fff';
   $('#me').textContent = `أنت: ${me.username} · الدور: ${me.role}`;
   $('#login').style.display = 'none';
   $('#chat').style.display = 'flex';
@@ -152,54 +133,28 @@ function setLoggedIn(me){
 function pushMessage(m){
   const wrap = el('div','msg');
   const meta = el('div','meta');
-  const name = el('span','name');
-  name.textContent = m.from;
-  name.style.color = m.color || '#fff';
-  name.style.direction = 'ltr';
+  const name = el('span','name'); name.textContent = m.from; name.style.color = m.color || '#fff'; name.style.direction='ltr'; name.style.cursor='pointer';
+  name.onclick = ()=> openSheetForUser(m.userId, m.from, m);
   meta.appendChild(name);
   const ts = el('span'); ts.textContent = new Date(m.ts).toLocaleTimeString(); meta.appendChild(ts);
   wrap.appendChild(meta);
   const bubble = el('div','bubble'); bubble.textContent = m.text; wrap.appendChild(bubble);
-  // reply marker
-  if (m.ref){
-    const ref = el('div','muted'); ref.textContent = '↩ رد على رسالة'; wrap.appendChild(ref);
-  }
-  // click menu on name
-  name.style.cursor = 'pointer';
-  name.onclick = ()=> openSheetForUser(m.userId, m.from, m);
-  $('#messages').appendChild(wrap);
-  $('#messages').scrollTop = $('#messages').scrollHeight;
+  if (m.ref){ const ref = el('div','muted'); ref.textContent='↩ رد على رسالة'; wrap.appendChild(ref); }
+  $('#messages').appendChild(wrap); $('#messages').scrollTop = $('#messages').scrollHeight;
 }
 
 function openSheetForUser(userId, username, message){
   state.selectedUser = { userId, username, message };
-  const sheet = $('#sheet'); const btns = $('#sheetBtns'); btns.innerHTML = '';
-  const addBtn = (txt, fn) => { const b = el('button','iconbtn'); b.textContent = txt; b.onclick = ()=>{ sheet.style.display='none'; fn(); }; btns.appendChild(b); };
-
-  addBtn('رد على الرسالة', ()=>{
-    const ref = message?.mid; const t = prompt('اكتب ردّك:');
-    if (!t || !ref) return;
-    state.socket.emit('chat:reply', { text: t, ref });
-  });
-  addBtn('دخول خاص', ()=>{ openDM(userId, username); });
-
-  if (state.role === 'admin' || state.role === 'mod'){
-    addBtn('طرد', ()=>{
-      alert('للطرد: استخدم قائمة الإدارة 🛡️ لاختيار الجهاز');
-    });
-    addBtn('حظر (جهاز)', ()=>{
-      const dv = prompt('أدخل deviceId للمستخدم (من شاشة الإدارة)');
-      if (!dv) return;
-      state.socket.emit('admin:ban', { targetType:'deviceId', targetValue: dv, reason:'manual', minutes:0 });
-      alert('تم إرسال أمر الحظر.');
-    });
-    addBtn('تغيير صلاحية', ()=>{
-      const role = prompt('role: user/mod/admin');
-      if (!role) return;
-      state.socket.emit('admin:role', { targetUserId: userId, role });
-    });
+  const sheet = $('#sheet'); const btns = $('#sheetBtns'); btns.innerHTML='';
+  const addBtn = (txt, fn)=>{ const b=el('button','iconbtn'); b.type='button'; b.textContent=txt; b.onclick=()=>{sheet.style.display='none'; fn();}; btns.appendChild(b); };
+  addBtn('رد على الرسالة', ()=>{ const ref=message?.mid; const t=prompt('اكتب ردّك:'); if(!t||!ref) return; state.socket.emit('chat:reply', { text:t, ref }); });
+  addBtn('دخول خاص', ()=> openDM(userId, username));
+  if (state.role==='admin'||state.role==='mod'){
+    addBtn('طرد', ()=> alert('استخدم 🛡️ الإدارة لاختيار جهاز للطرد'));
+    addBtn('حظر (جهاز)', ()=>{ const dv=prompt('deviceId من شاشة الإدارة'); if(!dv) return; state.socket.emit('admin:ban', { targetType:'deviceId', targetValue:dv, reason:'manual', minutes:0 }); alert('تم إرسال أمر الحظر.'); });
+    addBtn('تغيير صلاحية', ()=>{ const role=prompt('role: user/mod/admin'); if(!role) return; state.socket.emit('admin:role', { targetUserId:userId, role }); });
   }
-  sheet.style.display = 'block';
+  sheet.style.display='block';
 }
 $('#sheet').onclick = (e)=>{ if (e.target.id==='sheet') e.currentTarget.style.display='none'; };
 
@@ -208,24 +163,12 @@ function openDM(userId, username){
   $('#dmTitle').textContent = `خاص مع: ${username}`;
   $('#dmPanel').style.display = 'block';
 }
-$('#closeDM').onclick = ()=> $('#dmPanel').style.display = 'none';
-$('#dmSend').onclick = ()=>{
-  const t = $('#dmInput').value.trim();
-  if (!t || !state.dmWith) return;
-  state.socket.emit('dm:send', { toId: state.dmWith.userId, text: t });
-  $('#dmInput').value='';
-};
+$('#closeDM').onclick = ()=> $('#dmPanel').style.display='none';
+$('#dmSend').onclick = ()=>{ const t=$('#dmInput').value.trim(); if(!t||!state.dmWith) return; state.socket.emit('dm:send', { toId: state.dmWith.userId, text: t }); $('#dmInput').value=''; };
 
 function renderPresence(list){
-  const box = $('#presence'); box.innerHTML='';
-  list.forEach(u=>{
-    const badge = el('div','user');
-    badge.textContent = u.username;
-    badge.style.color = u.color || '#fff';
-    badge.style.direction = 'ltr';
-    badge.onclick = ()=> openSheetForUser(u.userId, u.username, null);
-    box.appendChild(badge);
-  });
+  const box=$('#presence'); box.innerHTML='';
+  list.forEach(u=>{ const badge=el('div','user'); badge.textContent=u.username; badge.style.color=u.color||'#fff'; badge.style.direction='ltr'; badge.onclick=()=>openSheetForUser(u.userId, u.username, null); box.appendChild(badge); });
 }
 
 // Admin panel icon
@@ -234,36 +177,31 @@ $('#iconAdmin').onclick = async ()=>{
   const mode = prompt('🛡️ الإدارة:\n1) قائمة الحظر\n2) قائمة المفصولين\n3) حظر جهاز\n4) فك الحظر\n5) مسح الدردشة\nأدخل الرقم:');
   if (mode==='1'){
     const res = await fetch(state.base+'/api/admin/bans', { headers:{'Authorization':'Bearer '+state.token} });
-    const data = await res.json();
-    alert('BANS:\n' + data.map(x => `[${x.type}] ${x.key} — ${x.reason || ''}`).join('\n'));
-  } else if (mode==='2'){
+    const data = await res.json(); alert('BANS:\n'+data.map(x=>`[${x.type}] ${x.key} — ${x.reason||''}`).join('\n') || 'لا يوجد');
+  }else if (mode==='2'){
     const res = await fetch(state.base+'/api/admin/kicks', { headers:{'Authorization':'Bearer '+state.token} });
-    const data = await res.json();
-    alert('KICKED:\n' + data.map(x => `${x.key} — ${x.reason || ''}`).join('\n'));
-  } else if (mode==='3'){
-    const dv = prompt('deviceId:');
-    if (!dv) return;
+    const data = await res.json(); alert('KICKED:\n'+data.map(x=>`${x.key} — ${x.reason||''}`).join('\n') || 'لا يوجد');
+  }else if (mode==='3'){
+    const dv = prompt('deviceId:'); if(!dv) return;
     await fetch(state.base+'/api/admin/ban', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token}, body: JSON.stringify({ targetType:'deviceId', targetValue: dv, reason:'admin', minutes:0 }) });
     alert('تم الحظر.');
-  } else if (mode==='4'){
-    const key = prompt('أدخل مفتاح الحظر (deviceId/userId/IP):');
-    if (!key) return;
+  }else if (mode==='4'){
+    const key = prompt('أدخل مفتاح الحظر (deviceId/userId/IP):'); if(!key) return;
     await fetch(state.base+'/api/admin/unban', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token}, body: JSON.stringify({ key }) });
     alert('تم فك الحظر.');
-  } else if (mode==='5'){
+  }else if (mode==='5'){
     await fetch(state.base+'/api/admin/clear', { method:'POST', headers:{'Authorization':'Bearer '+state.token} });
   }
 };
 
-// DM Icon toggles panel if already selected
-$('#iconDM').onclick = ()=>{ const p = $('#dmPanel'); p.style.display = (p.style.display==='block' ? 'none' : 'block'); };
+// DM Icon
+$('#iconDM').onclick = ()=>{ const p=$('#dmPanel'); p.style.display = (p.style.display==='block'?'none':'block'); };
 
 // Send message
-$('#send').onclick = ()=>{ const t = $('#msg').value.trim(); if (!t) return; state.socket.emit('chat:msg', { text: t }); $('#msg').value=''; };
+$('#send').onclick = ()=>{ const t=$('#msg').value.trim(); if(!t) return; state.socket.emit('chat:msg', { text: t }); $('#msg').value=''; };
 
-// Logics
+// Login (uses same origin)
 async function doLogin(kind){
-  state.base = (prompt('اكتب رابط السيرفر (Render):', state.base || 'https://nachat.onrender.com') || '').replace(/\/$/,'');
   try{
     let data;
     if (kind==='admin'){
@@ -275,9 +213,7 @@ async function doLogin(kind){
     setLoggedIn({ username:data.username, role:data.role, color:data.color });
     await loadSocketClient();
     connectSocket();
-  }catch(e){
-    alert(e.message || 'login failed');
-  }
+  }catch(e){ alert(e.message || 'login failed'); }
 }
 $('#loginQuick').onclick = ()=> doLogin('user');
 $('#loginAdmin').onclick = ()=> doLogin('admin');
