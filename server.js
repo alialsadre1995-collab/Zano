@@ -1,4 +1,7 @@
-// server.js
+// server.js — نسخة نهائية متوافقة مع page.html (DM + إدارة + إصلاحات iPhone)
+// Node 20+
+// بيئة: FIXED_ADMIN_USER, FIXED_ADMIN_PASS, JWT_SECRET, FRONTEND_ORIGIN, TRUST_PROXY, PORT
+
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -16,7 +19,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: (process.env.FRONTEND_ORIGIN || '*').split(',').map(s=>s.trim()),
-    methods: ['GET','POST'],
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });
@@ -24,51 +27,61 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 10000;
 if ((process.env.TRUST_PROXY || '').toLowerCase() === 'true') app.set('trust proxy', 1);
 
+// أمان + JSON + كوكيز
 app.use(helmet({ contentSecurityPolicy:false, crossOriginEmbedderPolicy:false }));
-app.use(cors({ origin: (process.env.FRONTEND_ORIGIN || '*').split(',').map(s=>s.trim()), credentials: true }));
+app.use(cors({ origin: (process.env.FRONTEND_ORIGIN || '*').split(',').map(s=>s.trim()), credentials:true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// serve page file
-app.get('/', (req,res)=> res.sendFile(path.join(__dirname,'page.html')));
+// 🔥 تعطيل الكاش للعميل (علشان ما يجيب نسخة قديمة)
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
+// قدّم الصفحة والعميل Socket.IO
+app.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'page.html')));
 app.get('/socket.io/socket.io.js', (req,res)=> res.sendFile(require.resolve('socket.io/client-dist/socket.io.js')));
 app.get('/healthz', (req,res)=> res.json({ ok:true }));
 
-// config
+// إعدادات عامة
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const ROOM_NAME = 'غرفه العرب';
 const now = ()=> Date.now();
 
-// in-memory stores (for demo / two-file approach)
-const users = new Map();        // userId -> { username, role, deviceId, passHash?, color, lastSeenAt, lastJoinAnnounceAt, lastIp }
+// مخازن بالذاكرة (ديمو بملفين)
+const users = new Map();         // userId -> { username, role, deviceId, passHash?, color, lastSeenAt, lastJoinAnnounceAt, lastIp }
 const usernameIndex = new Map(); // username -> userId
 const deviceIndex = new Map();   // deviceId -> userId
 const onlineSockets = new Map(); // socket.id -> { userId }
 const bans = new Map();          // key -> { type, reason, by, createdAt, expiresAt }
 const kicks = new Map();         // deviceId -> { by, reason, at }
-const history = [];              // chat messages
-const dmHistory = new Map();     // dmKey -> array
+const history = [];              // رسائل عامة
+const dmHistory = new Map();     // dmKey -> []
 
 const colorPool = ['#60a5fa','#f472b6','#f59e0b','#34d399','#a78bfa','#f87171','#22d3ee','#c084fc','#fb923c','#4ade80'];
 const pickColor = ()=> colorPool[Math.floor(Math.random()*colorPool.length)];
-const dmKey = (a,b) => [a,b].sort().join(':');
+const dmKey = (a,b)=> [a,b].sort().join(':');
 
 const FIXED_ADMIN_USER = process.env.FIXED_ADMIN_USER || 'Admin';
 const FIXED_ADMIN_PASS = process.env.FIXED_ADMIN_PASS || '1200@';
 
+// إنشاء أدمن ثابت (مرة واحدة)
 async function ensureFixedAdmin(){
   if (usernameIndex.has(FIXED_ADMIN_USER)) return;
   const userId = nanoid(21);
   const passHash = await bcrypt.hash(FIXED_ADMIN_PASS, 10);
   const deviceId = 'fixed-admin-device';
-  users.set(userId, { username: FIXED_ADMIN_USER, role: 'admin', deviceId, passHash, color:'#ffffff', lastSeenAt:0, lastJoinAnnounceAt:0, lastIp:''});
+  users.set(userId, { username: FIXED_ADMIN_USER, role:'admin', deviceId, passHash, color:'#ffffff', lastSeenAt:0, lastJoinAnnounceAt:0, lastIp:'' });
   usernameIndex.set(FIXED_ADMIN_USER, userId);
   deviceIndex.set(deviceId, userId);
   console.log('Fixed admin ready:', FIXED_ADMIN_USER);
 }
 
+// JWT
 const signToken = p => jwt.sign(p, JWT_SECRET, { expiresIn: '30d' });
-
 const authRequired = (req,res,next)=>{
   const token = (req.headers.authorization||'').replace('Bearer ','');
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
@@ -76,11 +89,11 @@ const authRequired = (req,res,next)=>{
 };
 const adminOrMod = (req,res,next)=>{
   const u = users.get(req.user.userId);
-  if (u && (u.role==='admin' || u.role==='mod')) return next();
+  if (u && (u.role === 'admin' || u.role === 'mod')) return next();
   res.status(403).json({ error:'forbidden' });
 };
 
-// ---------- REST: login ----------
+// ====== REST: Login ======
 app.post('/api/login-pass', async (req,res)=>{
   let { username, password, deviceId } = req.body || {};
   username = (username || '').trim();
@@ -100,12 +113,14 @@ app.post('/api/login-pass', async (req,res)=>{
 app.post('/api/login', (req,res)=>{
   let { username, deviceId } = req.body || {};
   username = (username || '').trim();
-  // if empty or contains non-english, make GuestNNNN
+
+  // إذا الاسم فاضي أو مو إنجليزي: نحوله Guest#### تلقائيًا
   const englishOnly = /^[A-Za-z0-9_.-]{3,20}$/.test(username||'');
   if (!englishOnly) username = 'Guest' + Math.floor(1000 + Math.random()*9000);
 
+  // فحص الحظر
   const ban = (bans.get(deviceId) || bans.get(usernameIndex.get(username) || '') || null);
-  if (ban && (!ban.expiresAt || ban.expiresAt > now())) return res.status(403).json({ error: 'banned' });
+  if (ban && (!ban.expiresAt || ban.expiresAt > now())) return res.status(403).json({ error:'banned' });
 
   let userId = deviceIndex.get(deviceId || '');
   if (!userId){
@@ -117,7 +132,7 @@ app.post('/api/login', (req,res)=>{
     } else {
       userId = nanoid(21);
       const devId = deviceId || nanoid(16);
-      users.set(userId, { username, role:'user', deviceId: devId, color: pickColor(), lastSeenAt:0, lastJoinAnnounceAt:0, lastIp:'' });
+      users.set(userId, { username, role:'user', deviceId:devId, color:pickColor(), lastSeenAt:0, lastJoinAnnounceAt:0, lastIp:'' });
       usernameIndex.set(username, userId); deviceIndex.set(devId, userId);
     }
   } else {
@@ -126,8 +141,8 @@ app.post('/api/login', (req,res)=>{
     u.username = username;
   }
   const u = users.get(userId);
-  const token = signToken({ userId, username: u.username, deviceId: u.deviceId });
-  res.json({ ok:true, token, userId, role:u.role, deviceId: u.deviceId, username: u.username, color:u.color });
+  const token = signToken({ userId, username:u.username, deviceId:u.deviceId });
+  res.json({ ok:true, token, userId, role:u.role, deviceId:u.deviceId, username:u.username, color:u.color });
 });
 
 app.get('/api/me', authRequired, (req,res)=>{
@@ -136,10 +151,9 @@ app.get('/api/me', authRequired, (req,res)=>{
   res.json({ userId:req.user.userId, username:u.username, role:u.role, deviceId:u.deviceId, color:u.color });
 });
 
-// admin lists
+// ====== REST: Admin ======
 app.get('/api/admin/online', authRequired, adminOrMod, (req,res)=>{
-  const list=[];
-  const seen=new Set();
+  const list=[]; const seen=new Set();
   for (const { userId } of onlineSockets.values()){
     if (seen.has(userId)) continue; seen.add(userId);
     const u = users.get(userId); if (!u) continue;
@@ -147,31 +161,36 @@ app.get('/api/admin/online', authRequired, adminOrMod, (req,res)=>{
   }
   res.json(list);
 });
-app.get('/api/admin/bans', authRequired, adminOrMod, (req,res)=> res.json(Array.from(bans, ([key,val])=>({ key, ...val }))));
-app.get('/api/admin/kicks', authRequired, adminOrMod, (req,res)=> res.json(Array.from(kicks, ([key,val])=>({ key, ...val }))));
 
-// new: user-info (for كشف معلومات)
+app.get('/api/admin/bans', authRequired, adminOrMod, (req,res)=>{
+  res.json(Array.from(bans, ([key,val])=>({ key, ...val })));
+});
+
+app.get('/api/admin/kicks', authRequired, adminOrMod, (req,res)=>{
+  res.json(Array.from(kicks, ([key,val])=>({ key, ...val })));
+});
+
+// كشف معلومات مستخدم واحد
 app.get('/api/admin/user-info', authRequired, adminOrMod, (req,res)=>{
   const id = (req.query.userId || '').toString();
   const u = users.get(id);
   if (!u) return res.status(404).json({ error:'no user' });
-  res.json({
-    userId: id,
-    username: u.username,
-    role: u.role,
-    deviceId: u.deviceId || '',
-    ip: u.lastIp || '',
-    lastSeenAt: u.lastSeenAt || 0
-  });
+  res.json({ userId:id, username:u.username, role:u.role, deviceId:u.deviceId||'', ip:u.lastIp||'', lastSeenAt:u.lastSeenAt||0 });
 });
 
-// kick
+// Kick
 app.post('/api/admin/kick', authRequired, adminOrMod, (req,res)=>{
   const { deviceId, reason } = req.body || {};
   if (!deviceId) return res.status(400).json({ error:'deviceId required' });
-  kicks.set(deviceId, { by:req.user.userId, reason: reason||'', at: now() });
+
+  kicks.set(deviceId, { by:req.user.userId, reason:reason||'', at:now() });
+
   let kickedName = 'مستخدم';
-  for (const [id, u] of users.entries()){ if (u.deviceId === deviceId){ kickedName = u.username; break; } }
+  for (const [id, u] of users.entries()){
+    if (u.deviceId === deviceId){ kickedName = u.username; break; }
+  }
+
+  // افصل أي سوكيت مرتبط بالجهاز
   for (const [sid, meta] of onlineSockets.entries()){
     const u = users.get(meta.userId);
     if (u?.deviceId === deviceId){
@@ -179,16 +198,18 @@ app.post('/api/admin/kick', authRequired, adminOrMod, (req,res)=>{
       if (s) s.disconnect(true);
     }
   }
+
+  // رسالة نظام
   io.to(ROOM_NAME).emit('system', { type:'kick', text:`تم طرد ${kickedName}${reason?` — السبب: ${reason}`:''}`, ts: now() });
   res.json({ ok:true });
 });
 
-// ban (kick then ban)
+// Ban (يفصل أولًا ثم يحظر) — يدعم userId/deviceId/ip
 app.post('/api/admin/ban', authRequired, adminOrMod, (req,res)=>{
   const { targetType, targetValue, reason, minutes } = req.body || {};
   if (!['userId','deviceId','ip'].includes(targetType)) return res.status(400).json({ error:'invalid type' });
 
-  // kick if connected
+  // kick المتصل إن وجد
   if (targetType === 'deviceId'){
     for (const [sid, meta] of onlineSockets.entries()){
       const u = users.get(meta.userId);
@@ -198,20 +219,21 @@ app.post('/api/admin/ban', authRequired, adminOrMod, (req,res)=>{
     }
   } else if (targetType === 'userId'){
     for (const [sid, meta] of onlineSockets.entries()){
-      if (meta.userId === targetValue){ const s = io.sockets.sockets.get(sid); if (s) s.disconnect(true); }
+      if (meta.userId === targetValue){
+        const s = io.sockets.sockets.get(sid); if (s) s.disconnect(true);
+      }
     }
   }
 
   const expiresAt = minutes ? now() + minutes*60*1000 : null;
-  bans.set(targetValue, { type: targetType, reason: reason||'', by: req.user.userId, createdAt: now(), expiresAt });
+  bans.set(targetValue, { type:targetType, reason:reason||'', by:req.user.userId, createdAt:now(), expiresAt });
 
   let label = targetValue;
-  if (targetType === 'userId') {
-    const u = users.get(targetValue);
-    if (u) label = u.username;
-  } else if (targetType === 'deviceId') {
-    label = 'جهاز ' + (targetValue || '').slice(0,6) + '…';
-  } else if (targetType === 'ip') {
+  if (targetType === 'userId'){
+    const u = users.get(targetValue); if (u) label = u.username;
+  } else if (targetType === 'deviceId'){
+    label = 'جهاز ' + (targetValue||'').slice(0,6) + '…';
+  } else if (targetType === 'ip'){
     label = 'IP محجوب';
   }
   io.to(ROOM_NAME).emit('system', { type:'ban', text:`تم حظر ${label}${reason?` — السبب: ${reason}`:''}`, ts: now() });
@@ -220,10 +242,12 @@ app.post('/api/admin/ban', authRequired, adminOrMod, (req,res)=>{
 });
 
 app.post('/api/admin/unban', authRequired, adminOrMod, (req,res)=>{
-  bans.delete((req.body||{}).key);
+  const key = (req.body||{}).key;
+  bans.delete(key);
   res.json({ ok:true });
 });
 
+// إعطاء صلاحية (فقط الأدمن الرئيسي)
 app.post('/api/admin/role', authRequired, (req,res)=>{
   const caller = users.get(req.user.userId);
   if (!caller || caller.role !== 'admin') return res.status(403).json({ error:'forbidden' });
@@ -233,65 +257,85 @@ app.post('/api/admin/role', authRequired, (req,res)=>{
   u.role = role; res.json({ ok:true });
 });
 
+// مسح الدردشة العامة
 app.post('/api/admin/clear', authRequired, adminOrMod, (req,res)=>{
-  history.length = 0; io.to(ROOM_NAME).emit('admin:clear'); res.json({ ok:true });
+  history.length = 0;
+  io.to(ROOM_NAME).emit('admin:clear');
+  res.json({ ok:true });
 });
 
-// ---------- sockets ----------
-io.use((socket, next)=>{
-  try{ socket.user = jwt.verify(socket.handshake.auth?.token, JWT_SECRET); next(); }
-  catch{ next(new Error('unauthorized')); }
+// ====== Socket.IO ======
+io.use((socket,next)=>{
+  try { socket.user = jwt.verify(socket.handshake.auth?.token, JWT_SECRET); next(); }
+  catch { next(new Error('unauthorized')); }
 });
 
 io.on('connection', (socket)=>{
   const { userId } = socket.user || {};
-  const u = users.get(userId); if (!u) return socket.disconnect(true);
+  const u = users.get(userId);
+  if (!u) return socket.disconnect(true);
 
+  // IP (مع أخذ reverse proxy بالحسبان)
   const ip = socket.handshake.headers['x-forwarded-for']?.split(',')[0]?.trim()
-           || socket.request.socket.remoteAddress || '0.0.0.0';
+          || socket.request.socket.remoteAddress || '0.0.0.0';
   u.lastIp = ip;
 
-  // active ban?
-  const active = [u.deviceId, userId, ip].map(k=>bans.get(k)).find(b=>b && (!b.expiresAt || b.expiresAt > now()));
-  if (active){ socket.emit('banned', { reason: active.reason || 'banned' }); return socket.disconnect(true); }
+  // لو محظور (IP/جهاز/مستخدم)
+  const activeBan = [u.deviceId, userId, ip].map(k=>bans.get(k)).find(b=>b && (!b.expiresAt || b.expiresAt > now()));
+  if (activeBan){
+    socket.emit('banned', { reason: activeBan.reason || 'banned' });
+    return socket.disconnect(true);
+  }
 
   socket.join(ROOM_NAME);
   onlineSockets.set(socket.id, { userId });
 
-  // join announce with cooldown 5 minutes
+  // رسالة انضمام بفاصل 5 دقائق لنفس الشخص
   const FIVE = 5*60*1000;
-  const eligible = !u.lastJoinAnnounceAt || (now() - u.lastJoinAnnounceAt) > FIVE;
-  if (eligible){
+  const canAnnounce = !u.lastJoinAnnounceAt || (now() - u.lastJoinAnnounceAt) > FIVE;
+  if (canAnnounce){
     u.lastJoinAnnounceAt = now();
     io.to(ROOM_NAME).emit('system', { type:'join', text:`${u.username} انضم إلى الغرفة`, ts: now() });
   }
 
-  // send history
+  // أرسل التاريخ + قائمة المتواجدين
   socket.emit('history', history.slice(-200));
   emitPresence();
 
+  // رسائل عامة
   socket.on('chat:msg', p=>{
     const text = (p?.text || '').toString().trim().slice(0,600);
     if (!text) return;
-    const rec = { from:u.username, userId, color:u.color || '#fff', text, ts: now(), mid: nanoid(10) };
-    history.push(rec); io.to(ROOM_NAME).emit('chat:new', rec);
+    const rec = { from:u.username, userId, color:u.color||'#fff', text, ts: now(), mid:nanoid(10) };
+    history.push(rec);
+    io.to(ROOM_NAME).emit('chat:new', rec);
   });
 
+  // رد على رسالة (بس كـ نص مع ref رمزي حسب الواجهة الحالية)
   socket.on('chat:reply', p=>{
     const text = (p?.text || '').toString().trim().slice(0,600);
-    const ref = (p?.ref || '').toString().slice(0,20);
+    const ref  = (p?.ref  || '').toString().slice(0,20);
     if (!text || !ref) return;
-    const rec = { from:u.username, userId, color:u.color || '#fff', text, ts: now(), mid:nanoid(10), ref };
-    history.push(rec); io.to(ROOM_NAME).emit('chat:new', rec);
+    const rec = { from:u.username, userId, color:u.color||'#fff', text, ts: now(), mid:nanoid(10), ref };
+    history.push(rec);
+    io.to(ROOM_NAME).emit('chat:new', rec);
   });
 
+  // خاص
   socket.on('dm:send', p=>{
-    const toId = (p?.toId || '').toString(); const text = (p?.text || '').toString().trim().slice(0,600);
+    const toId = (p?.toId || '').toString();
+    const text = (p?.text || '').toString().trim().slice(0,600);
     if (!toId || !text) return;
-    const key = dmKey(userId, toId); const rec = { fromId:userId, toId, text, ts: now(), mid:nanoid(10) };
-    const arr = dmHistory.get(key) || []; arr.push(rec); dmHistory.set(key, arr);
+    const key = dmKey(userId, toId);
+    const rec = { fromId:userId, toId, text, ts: now(), mid:nanoid(10) };
+    const arr = dmHistory.get(key) || [];
+    arr.push(rec); dmHistory.set(key, arr);
+    // أرسل للطرفين فقط
     for (const [sid, meta] of onlineSockets.entries()){
-      if (meta.userId===userId || meta.userId===toId){ const s = io.sockets.sockets.get(sid); s && s.emit('dm:new', rec); }
+      if (meta.userId === userId || meta.userId === toId){
+        const s = io.sockets.sockets.get(sid);
+        if (s) s.emit('dm:new', rec);
+      }
     }
   });
 
@@ -302,14 +346,17 @@ io.on('connection', (socket)=>{
   });
 });
 
+// بث المتواجدين
 function emitPresence(){
   const uniq = new Map();
-  for (const {userId} of onlineSockets.values()){
+  for (const { userId } of onlineSockets.values()){
     const u = users.get(userId);
-    if (u) uniq.set(userId, { userId, username: u.username, color: u.color || '#fff', role: u.role });
+    if (u) uniq.set(userId, { userId, username:u.username, color:u.color||'#fff', role:u.role });
   }
   io.to(ROOM_NAME).emit('presence', Array.from(uniq.values()));
 }
 
-ensureFixedAdmin().then(()=> server.listen(PORT, ()=>console.log('Server on', PORT)))
-.catch(err=>{ console.error(err); process.exit(1); });
+// تشغيل
+ensureFixedAdmin()
+  .then(()=> server.listen(PORT, ()=> console.log('Server on', PORT)))
+  .catch(err=>{ console.error(err); process.exit(1); });
