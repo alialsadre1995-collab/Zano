@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>#arab — غرفة العرب</title>
+<title>#العرب — غرفة الدردشة</title>
 <style>
   :root{
     --bg:#0b0c0f; --fg:#e7eaf0; --muted:#a6adbb;
@@ -14,30 +14,31 @@
   body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto}
   .app{max-width:800px;margin:0 auto;height:100dvh;display:flex;flex-direction:column}
 
-  /* Header */
+  /* رأس الصفحة */
   .hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);background:#0d0f14;position:sticky;top:0;z-index:5}
   .badge{background:#0f1720;border:1px solid var(--line);color:#cbd5e1;border-radius:6px;padding:3px 7px;font-weight:700}
   .chan{font-weight:800}
   .icons{margin-inline-start:auto;display:flex;gap:10px}
-  .ic{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;background:#0f1218}
+  .ic{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;background:#0f1218}
   .ic:active{transform:scale(.98)}
 
-  /* Messages */
+  /* الرسائل */
   #messages{flex:1;overflow:auto;padding:12px 14px;background:#0b0c0f}
   .sys{color:#9fb4c7;font-style:italic;margin:6px 0}
   .row{margin:10px 0}
-  .nick{color:#5fc3ff;font-weight:700;direction:ltr}
-  .time{color:var(--muted);font-size:12px;margin-inline-start:6px}
+  .head{display:flex;gap:6px;align-items:baseline;direction:ltr;text-align:left} /* الاسم يسار */
+  .nick{color:#5fc3ff;font-weight:700}
+  .time{color:var(--muted);font-size:12px}
   .txt{white-space:pre-wrap;word-break:break-word}
 
-  /* Composer */
+  /* المؤلف */
   .cmp{position:fixed;left:0;right:0;bottom:0;background:#0f1218;border-top:1px solid var(--line);padding:8px;z-index:10}
   .cmp .bar{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:center}
   #msg{flex:1;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#050608;color:#fff;font-size:17px}
-  .send{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--accent);color:#001018;font-weight:800;cursor:pointer}
+  .send{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--accent);color:#001018;font-weight:800;cursor:pointer}
   .send:active{transform:translateY(1px)}
 
-  /* People drawer */
+  /* قائمة المتواجدين */
   .drawer{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:30}
   .panel{background:#0f1218;border-bottom:1px solid var(--line);position:absolute;left:0;right:0;top:0;max-width:800px;margin:0 auto}
   .ph{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
@@ -49,7 +50,7 @@
   .b{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#0b0e14;color:#d8e0ea;cursor:pointer}
   .b.danger{background:#270b0b;color:#f6caca;border-color:#3a0d0d}
 
-  /* DM window */
+  /* نافذة الخاص */
   .dm{position:fixed;right:10px;bottom:76px;width:340px;max-width:92vw;display:none;flex-direction:column;background:#0f1218;border:1px solid var(--line);border-radius:12px;z-index:40;box-shadow:0 12px 32px rgba(0,0,0,.55)}
   .dmH{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
   .dmT{font-weight:700}
@@ -59,6 +60,15 @@
   .dmC button{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018}
   .dmMax{inset:0!important;position:fixed!important;width:auto!important;height:auto!important;max-width:none!important;border-radius:0!important}
 
+  /* شاشة الدخول */
+  .loginOv{position:fixed;inset:0;background:#0b0c0fe6;display:flex;align-items:center;justify-content:center;z-index:99}
+  .loginCard{width:min(92vw,520px);background:#0f1218;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .loginCard h3{margin:0 0 10px}
+  .loginRow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .loginCard input{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#050608;color:#fff}
+  .loginCard .btn{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018;cursor:pointer}
+  .loginCard .ghost{background:transparent;color:#d8e0ea}
+
   @supports (-webkit-touch-callout:none){
     input,textarea,select,button{font-size:16px!important}
   }
@@ -66,44 +76,64 @@
 </head>
 <body>
 <div class="app">
-  <!-- Header -->
+  <!-- رأس -->
   <div class="hdr">
     <span class="badge" id="badgeCnt">0</span>
-    <span class="chan">#arab</span>
+    <span class="chan">#العرب</span>
     <div class="icons">
-      <div class="ic" id="btnInfo">ℹ️</div>
       <div class="ic" id="btnPeople">👥</div>
+      <div class="ic" id="btnInfo">ℹ️</div>
       <div class="ic" id="btnAdmin">🛡️</div>
     </div>
   </div>
 
-  <!-- Messages -->
+  <!-- شاشة الدخول -->
+  <div class="loginOv" id="loginOv">
+    <div class="loginCard">
+      <h3>تسجيل الدخول</h3>
+      <div class="loginRow">
+        <input id="lu" placeholder="اسم إنجليزي (يحوَّل إلى Guest إن تُرك فارغ)">
+        <button class="btn" id="btnUserLogin">دخول</button>
+      </div>
+      <hr style="border-color:var(--line);opacity:.3">
+      <div class="loginRow">
+        <input id="au" placeholder="اسم المشرف">
+        <input id="ap" type="password" placeholder="كلمة السر">
+        <button class="btn" id="btnAdminLogin">دخول المشرف</button>
+      </div>
+      <div class="loginRow">
+        <button class="btn ghost" id="btnSkip">متابعة كضيف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- الرسائل -->
   <div id="messages"></div>
 
-  <!-- Composer -->
+  <!-- المؤلف -->
   <div class="cmp">
     <div class="bar">
-      <input id="msg" placeholder="Send a message…">
+      <input id="msg" placeholder="اكتب رسالة…">
       <button class="send" id="send">➤</button>
     </div>
   </div>
 </div>
 
-<!-- People drawer -->
+<!-- متواجدون -->
 <div class="drawer" id="drawer">
   <div class="panel">
     <div class="ph">
-      <strong id="pcount">0 people here</strong>
-      <button class="b" id="closeDrawer">CLOSE ✕</button>
+      <strong id="pcount">0 متواجد</strong>
+      <button class="b" id="closeDrawer">إغلاق ✕</button>
     </div>
     <div class="list" id="plist"></div>
   </div>
 </div>
 
-<!-- DM window -->
+<!-- نافذة DM -->
 <div class="dm" id="dm">
   <div class="dmH">
-    <div class="dmT" id="dmT">DM</div>
+    <div class="dmT" id="dmT">خاص</div>
     <div>
       <button class="b" id="dmMin">—</button>
       <button class="b" id="dmFull">⤢</button>
@@ -119,25 +149,39 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* ===== helpers ===== */
+/* ===== مساعدات عامة ===== */
 const state={ base:location.origin, token:null, me:null, socket:null, role:'user', color:'#5fc3ff', dmWith:null };
 const $=s=>document.querySelector(s); const el=(t,c)=>{const x=document.createElement(t); if(c)x.className=c; return x;};
 const deviceId=()=>{ let id=localStorage.getItem('deviceId'); if(!id){ id=(crypto.randomUUID&&crypto.randomUUID())||Math.random().toString(36).slice(2); localStorage.setItem('deviceId',id);} return id; };
 async function post(p,body,auth=true){const h={'Content-Type':'application/json'};if(auth&&state.token)h.Authorization='Bearer '+state.token;const r=await fetch(state.base+p,{method:'POST',headers:h,body:JSON.stringify(body||{})});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
 async function get(p,auth=true){const h={};if(auth&&state.token)h.Authorization='Bearer '+state.token;const r=await fetch(state.base+p,{headers:h});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
 
-/* ===== quick guest login ===== */
-(async function quickLogin(){
+/* ===== تسجيل الدخول ===== */
+async function doLogin(kind){
   try{
-    let nick = localStorage.getItem('nick') || '';
-    if(!/^[A-Za-z0-9_.-]{3,20}$/.test(nick||'')) nick = '';
-    const data = await post('/api/login', { username:nick, deviceId:deviceId() }, false);
-    state.token=data.token; state.me={userId:data.userId, username:data.username}; state.role=data.role;
+    let data;
+    if(kind==='admin'){
+      const au = ($('#au').value||'').trim();
+      const ap = $('#ap').value||'';
+      data = await post('/api/login-pass', { username:au, password:ap, deviceId:deviceId() }, false);
+    }else{
+      let name = ($('#lu').value||'').trim();
+      if(!/^[A-Za-z0-9_.-]{3,20}$/.test(name||'')) name = '';
+      data = await post('/api/login', { username:name, deviceId:deviceId() }, false);
+    }
+    state.token=data.token;
+    state.me={userId:data.userId, username:data.username};
+    state.role=data.role;
+    $('#loginOv').style.display='none';
     connectSocket();
-  }catch(e){ alert('Login failed: '+(e.message||e)); }
-})();
+    setTimeout(()=>{ layout(); stickToBottom(true); },0);
+  }catch(e){ alert(e.message||'فشل تسجيل الدخول'); }
+}
+$('#btnUserLogin').onclick = ()=> doLogin('user');
+$('#btnAdminLogin').onclick = ()=> doLogin('admin');
+$('#btnSkip').onclick      = ()=> doLogin('user');
 
-/* ===== socket ===== */
+/* ===== Socket ===== */
 function connectSocket(){
   state.socket = io(state.base, { auth:{ token: state.token } });
 
@@ -146,7 +190,7 @@ function connectSocket(){
   state.socket.on('presence', renderPresence);
   state.socket.on('system', m=> pushSys(m.text||''));
   state.socket.on('admin:clear', ()=> $('#messages').innerHTML='');
-  state.socket.on('banned', info=>{ alert((info&&info.reason)||'banned'); state.socket.disconnect(); });
+  state.socket.on('banned', info=>{ alert((info&&info.reason)||'تم الحظر'); state.socket.disconnect(); });
 
   // DM
   state.socket.on('dm:new', rec=>{
@@ -159,18 +203,31 @@ function connectSocket(){
   });
 }
 
-function pushSys(t){ const s=el('div','sys'); s.textContent='→ '+t; $('#messages').appendChild(s); scrollEnd(); }
+/* ===== الرسائل ===== */
+const M = ()=> $('#messages');
+function isNearBottom(el,tol=6){ return (el.scrollHeight - el.scrollTop - el.clientHeight) <= tol; }
+let _stick = true;
+function stickToBottom(force=false){ const el=M(); if(!el) return; if(force || _stick){ el.scrollTop = el.scrollHeight; } }
+function scrollEnd(){ stickToBottom(true); }
+
+function pushSys(t){
+  const s=el('div','sys'); s.textContent='→ '+t;
+  M().appendChild(s);
+  stickToBottom();
+}
 function pushLine(m){
   const row=el('div','row');
-  const head=el('div'); head.innerHTML=`<span class="nick" style="color:${m.color||'#5fc3ff'}">${m.from}</span><span class="time">${new Date(m.ts).toLocaleTimeString()}</span>`;
+  const head=el('div','head'); head.innerHTML=`<span class="nick" style="color:${m.color||'#5fc3ff'}">${m.from}</span><span class="time">${new Date(m.ts).toLocaleTimeString()}</span>`;
   const txt=el('div','txt'); txt.textContent=m.text;
-  row.append(head,txt); $('#messages').appendChild(row); scrollEnd();
+  row.append(head,txt); M().appendChild(row);
+  stickToBottom();
 }
+M().addEventListener('scroll', ()=>{ _stick = isNearBottom(M()); }, { passive:true });
 
-/* ===== people drawer ===== */
+/* ===== المتواجدون ===== */
 function renderPresence(list){
   $('#badgeCnt').textContent = list.length;
-  $('#pcount').textContent   = `${list.length} people here`;
+  $('#pcount').textContent   = `${list.length} متواجد`;
   const box=$('#plist'); box.innerHTML='';
   list.forEach(u=>{
     const li=el('div','user');
@@ -185,7 +242,7 @@ $('#btnPeople').onclick = ()=> $('#drawer').style.display='block';
 $('#closeDrawer').onclick = ()=> $('#drawer').style.display='none';
 $('#drawer').onclick = (e)=>{ if(e.target.id==='drawer') $('#drawer').style.display='none'; };
 
-/* ===== user menu (with admin tools + open DM) ===== */
+/* ===== قائمة المستخدم + أدوات الإدارة ===== */
 function userMenu(u){
   const m=document.createElement('div');
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:40';
@@ -216,7 +273,7 @@ function userMenu(u){
   function btn(t,fn){ const x=document.createElement('button'); x.className='b'; x.textContent=t; x.onclick=fn; return x; }
 }
 
-/* ===== DM window ===== */
+/* ===== DM ===== */
 function showDM(userId, username){
   state.dmWith={userId,username};
   $('#dmT').textContent='خاص: '+username;
@@ -235,34 +292,43 @@ function sendDM(){
   $('#dmI').value=''; $('#dmI').focus();
 }
 
-/* ===== send message ===== */
+/* ===== إرسال رسالة عامة ===== */
 $('#send').onclick = send;
 $('#msg').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
-function send(){ const t=$('#msg').value.trim(); if(!t) return; state.socket.emit('chat:msg',{text:t}); $('#msg').value=''; $('#msg').focus(); scrollEnd(); }
+function send(){
+  const t=$('#msg').value.trim(); if(!t) return;
+  state.socket.emit('chat:msg',{text:t});
+  $('#msg').value=''; $('#msg').focus();
+  stickToBottom(true);
+}
 
-/* ===== header buttons ===== */
-$('#btnInfo').onclick = ()=> alert('#arab — غرفة داكنة بسيطة');
+/* ===== أزرار الرأس ===== */
+$('#btnInfo').onclick = ()=> alert('#العرب — غرفة دردشة داكنة بسيطة');
 $('#btnAdmin').onclick = async ()=>{
-  if(state.role!=='admin'&&state.role!=='mod'){ alert('للمشرفين فقط'); return; }
+  if(state.role!=='admin'&&state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
   const bans = await get('/api/admin/bans', true);
   alert(`قائمة الحظر: ${bans.length} عنصر`);
 };
 
-/* ===== iPhone keyboard: حساب ارتفاع فعلي للرسائل ===== */
-function scrollEnd(){ const m=$('#messages'); m.scrollTop=m.scrollHeight; }
+/* ===== تخطيط وكيبورد iOS ===== */
 function layout(){
   const vv = window.visualViewport;
   const vvh = vv ? vv.height : window.innerHeight;
   const headerH = document.querySelector('.hdr').getBoundingClientRect().height;
   const cmpH    = document.querySelector('.cmp').getBoundingClientRect().height;
   const h = Math.max(140, Math.round(vvh - headerH - cmpH));
-  $('#messages').style.height = h+'px';
+  M().style.height = h+'px';
 }
-window.visualViewport && visualViewport.addEventListener('resize', ()=>{ layout(); /* نحافظ على الأسفل */ scrollEnd(); });
-window.addEventListener('resize', ()=>{ layout(); scrollEnd(); });
-window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ layout(); scrollEnd(); }, 150); });
-document.addEventListener('focusin', e=>{ if(e.target.id==='msg') setTimeout(()=>{ layout(); scrollEnd(); },0); });
-document.addEventListener('DOMContentLoaded', ()=>{ layout(); scrollEnd(); });
+let kbLoop=null;
+function startKBLoop(){ if(kbLoop) return; const step=()=>{ layout(); stickToBottom(); kbLoop = requestAnimationFrame(step); }; kbLoop=requestAnimationFrame(step); }
+function stopKBLoop(){ if(kbLoop){ cancelAnimationFrame(kbLoop); kbLoop=null; } }
+
+window.visualViewport && visualViewport.addEventListener('resize', ()=>{ layout(); stickToBottom(); });
+window.addEventListener('resize', ()=>{ layout(); stickToBottom(); });
+window.addEventListener('orientationchange', ()=> setTimeout(()=>{ layout(); stickToBottom(true); },120));
+document.addEventListener('focusin', e=>{ if(e.target.id==='msg'){ startKBLoop(); }});
+document.addEventListener('focusout', e=>{ if(e.target.id==='msg'){ stopKBLoop(); setTimeout(()=>{ layout(); stickToBottom(); },0); }});
+document.addEventListener('DOMContentLoaded', ()=>{ layout(); stickToBottom(true); });
 </script>
 </body>
 </html>
