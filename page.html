@@ -23,8 +23,11 @@
   .ic:active{transform:scale(.98)}
 
   /* الرسائل */
-  #messages{flex:1;overflow:auto;padding:12px 14px;background:#0b0c0f}
-  .sys{color:#9fb4c7;font-style:italic;margin:6px 0}
+  #messages{
+    flex:1;overflow:auto;padding:12px 14px;background:#0b0c0f;
+    scroll-behavior:auto;-webkit-overflow-scrolling:touch;
+  }
+  .sys{color:#9fb4c7;font-style:italic;margin:6px 0;white-space:pre-wrap}
   .row{margin:10px 0}
   .head{display:flex;gap:6px;align-items:baseline;direction:ltr;text-align:left} /* الاسم يسار */
   .nick{color:#5fc3ff;font-weight:700}
@@ -172,7 +175,19 @@ async function doLogin(kind){
     state.token=data.token;
     state.me={userId:data.userId, username:data.username};
     state.role=data.role;
+
+    // إخفاء شاشة الدخول
     $('#loginOv').style.display='none';
+
+    // رسالة ترحيب طويلة بأربع أسطر وملصقات
+    pushSys(
+`أهلاً وسهلاً بك في غرفة العرب — نتمنّى لك وقتًا ممتعًا 🤝
+❤️😍🥳
+☺️😎
+🥳🥳
+😜`
+    );
+
     connectSocket();
     setTimeout(()=>{ layout(); stickToBottom(true); },0);
   }catch(e){ alert(e.message||'فشل تسجيل الدخول'); }
@@ -185,7 +200,7 @@ $('#btnSkip').onclick      = ()=> doLogin('user');
 function connectSocket(){
   state.socket = io(state.base, { auth:{ token: state.token } });
 
-  state.socket.on('history', arr=>{ $('#messages').innerHTML=''; arr.forEach(pushLine); scrollEnd(); });
+  state.socket.on('history', arr=>{ $('#messages').innerHTML=''; arr.forEach(pushLine); forceStick(); });
   state.socket.on('chat:new', pushLine);
   state.socket.on('presence', renderPresence);
   state.socket.on('system', m=> pushSys(m.text||''));
@@ -203,24 +218,29 @@ function connectSocket(){
   });
 }
 
-/* ===== الرسائل ===== */
-const M = ()=> $('#messages');
+/* ===== الرسائل + تثبيت قوي للأسفل ===== */
+const M = ()=> document.getElementById('messages');
 function isNearBottom(el,tol=6){ return (el.scrollHeight - el.scrollTop - el.clientHeight) <= tol; }
 let _stick = true;
-function stickToBottom(force=false){ const el=M(); if(!el) return; if(force || _stick){ el.scrollTop = el.scrollHeight; } }
-function scrollEnd(){ stickToBottom(true); }
+
+// تمرير بالقوة بعد 3 إطارات (يعالج تأخر الآيفون مع الكيبورد)
+function forceStick(){
+  const el=M(); if(!el) return;
+  const s=()=>{ el.scrollTop = el.scrollHeight; };
+  requestAnimationFrame(()=>{ s(); requestAnimationFrame(()=>{ s(); requestAnimationFrame(s); }); });
+}
+function stickToBottom(force=false){ if(force || _stick) forceStick(); }
 
 function pushSys(t){
   const s=el('div','sys'); s.textContent='→ '+t;
-  M().appendChild(s);
-  stickToBottom();
+  M().appendChild(s); stickToBottom(true);
 }
 function pushLine(m){
   const row=el('div','row');
-  const head=el('div','head'); head.innerHTML=`<span class="nick" style="color:${m.color||'#5fc3ff'}">${m.from}</span><span class="time">${new Date(m.ts).toLocaleTimeString()}</span>`;
+  const head=el('div','head');
+  head.innerHTML=`<span class="nick" style="color:${m.color||'#5fc3ff'}">${m.from}</span><span class="time">${new Date(m.ts).toLocaleTimeString()}</span>`;
   const txt=el('div','txt'); txt.textContent=m.text;
-  row.append(head,txt); M().appendChild(row);
-  stickToBottom();
+  row.append(head,txt); M().appendChild(row); stickToBottom(true);
 }
 M().addEventListener('scroll', ()=>{ _stick = isNearBottom(M()); }, { passive:true });
 
