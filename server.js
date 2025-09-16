@@ -326,4 +326,4 @@ ensureFixedAdmin().then(()=>{
   console.error('Failed to init admin', err);
   process.exit(1);
 });
-function now(){ return Date.now(); }
+const now = () => Date.now();
