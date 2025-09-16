@@ -15,7 +15,6 @@
     }
     .wrap{max-width:740px;margin:0 auto;min-height:100%;width:100%}
 
-    /* رأس التطبيق */
     header.app{
       position:sticky;top:0;background:var(--bg);padding:12px;
       border-bottom:1px solid var(--border);
@@ -24,18 +23,16 @@
     .title{font-weight:700}
     .iconbtn{background:var(--card);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:8px 10px;cursor:pointer}
 
-    /* بطاقات + إدخال */
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
     input,button{font-size:16px;line-height:1.25}
     input:focus{outline:none;border-color:#6ee7b7;box-shadow:0 0 0 2px rgba(110,231,183,.15)}
 
-    /* منطقة الحضور والرسائل */
     #presence{display:flex;gap:6px;overflow:auto;padding:8px}
     #presence .user{border:1px solid var(--border);border-radius:999px;padding:6px 8px;font-size:12px;white-space:nowrap;cursor:pointer}
 
-    /* الرسائل: نحدد الارتفاع ديناميكياً بـ JS (layoutChat) */
+    /* الرسائل: نضبط الارتفاع بالحسابات (layoutChat) */
     #messages{
-      height:40vh; /* قيمة احتياطية – سيعاد حسابها */
+      height:40vh; /* تُستبدل آليًا */
       overflow-y:auto; overscroll-behavior:contain; scroll-behavior:auto;
       border-top:1px solid var(--border);border-bottom:1px solid var(--border);
       padding:10px;margin:8px;border-radius:10px;background:#0f0f0f
@@ -46,23 +43,26 @@
     .bubble{display:inline-block;background:#101010;border:1px solid var(--border);border-radius:12px;padding:10px;max-width:92%}
     .system{color:#cbd5e1;font-style:italic}
 
-    /* شريط الكتابة (فوق الشريط السفلي أو الكيبورد) */
+    /* المؤلف (شريط الكتابة) */
     .composer{
       position:fixed;left:0;right:0;bottom:50px;display:flex;gap:8px;align-items:center;
       background:#111;border-top:1px solid var(--border);padding:8px 10px;z-index:20;
-      max-width:740px;margin:0 auto
+      max-width:740px;margin:0 auto;
+      padding-bottom: env(safe-area-inset-bottom);
     }
     #msg{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:#000;color:#fff;font-size:17px}
     .btn{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;font-size:16px;cursor:pointer}
     .btn.ghost{background:transparent;color:#d4d4d8}
 
-    /* شريط سفلي */
+    /* الشريط السفلي */
     .navbar{
       position:fixed;left:0;right:0;bottom:0;height:50px;display:flex;z-index:25;
       background:#0f0f0f;border-top:1px solid var(--border);
-      padding-bottom:env(safe-area-inset-bottom);
-      max-width:740px;margin:0 auto
+      padding-bottom: env(safe-area-inset-bottom);
+      max-width:740px;margin:0 auto;
+      transition: transform .18s ease;
     }
+    .navbar.hidden{ transform: translateY(100%); } /* نخفيه وقت الكيبورد */
     .tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;color:#cfcfd2;font-size:13px}
     .tab:active{background:#1a1a1a}
 
@@ -118,7 +118,7 @@
     <div id="messages"></div>
   </section>
 
-  <!-- شريط الكتابة -->
+  <!-- المؤلف -->
   <div class="composer" id="composer" style="display:none">
     <input id="msg" placeholder="اكتب رسالتك هنا">
     <button id="send" class="btn" type="button">إرسال</button>
@@ -132,24 +132,13 @@
     <button class="tab" id="openPrivate">📩 خاص</button>
   </nav>
 
-  <!-- مودال: الضبط -->
-  <div class="modal" id="settingsModal">
-    <div class="sheet">
-      <div class="row" style="justify-content:space-between">
-        <h3>⚙️ الضبط</h3>
-        <button class="btn ghost" data-close="#settingsModal">إغلاق</button>
-      </div>
-      <div class="row"><span class="badge">الوضع: داكن دائمًا</span><span class="badge">اللغة: العربية</span></div>
-      <div class="row" style="margin-top:8px"><button class="btn ghost" id="btnClearLocal">مسح التخزين المحلي</button></div>
-    </div>
-  </div>
-
-  <!-- مودالات إضافية (حائط/غرف/خاص) -->
+  <!-- مودالات -->
+  <div class="modal" id="settingsModal"><div class="sheet"><div class="row" style="justify-content:space-between"><h3>⚙️ الضبط</h3><button class="btn ghost" data-close="#settingsModal">إغلاق</button></div><div class="row"><span class="badge">الوضع: داكن دائمًا</span><span class="badge">اللغة: العربية</span></div><div class="row" style="margin-top:8px"><button class="btn ghost" id="btnClearLocal">مسح التخزين المحلي</button></div></div></div>
   <div class="modal" id="wallModal"><div class="sheet"><div class="row" style="justify-content:space-between"><h3>💬 الحائط</h3><button class="btn ghost" data-close="#wallModal">إغلاق</button></div><div class="card" id="wallList">لا توجد منشورات بعد.</div></div></div>
   <div class="modal" id="roomsModal"><div class="sheet"><div class="row" style="justify-content:space-between"><h3>👥 الغرف</h3><button class="btn ghost" data-close="#roomsModal">إغلاق</button></div><div class="card"><div class="row"><span class="badge">غرفة العرب (افتراضية)</span></div><p class="muted">واجهة جاهزة للتوسعة لاحقًا.</p></div></div></div>
   <div class="modal" id="privateModal"><div class="sheet"><div class="row" style="justify-content:space-between"><h3>📩 المحادثات الخاصة</h3><button class="btn ghost" data-close="#privateModal">إغلاق</button></div><div id="dmList" class="card"><div class="muted">اختر من المتواجدين لفتح خاص.</div></div></div></div>
 
-  <!-- نافذة DM عائمة -->
+  <!-- DM -->
   <div class="dmWin" id="dmWin">
     <div class="dmHeader">
       <div class="dmTitle" id="dmTitle">خاص</div>
@@ -169,7 +158,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* ========= Helpers ========= */
+/* ===== Helpers ===== */
 const state={ base:location.origin, token:null, me:null, socket:null, role:'user', color:'#fff', dmWith:null };
 const $=s=>document.querySelector(s);
 const el=(t,c)=>{const x=document.createElement(t); if(c)x.className=c; return x;};
@@ -177,7 +166,7 @@ const deviceId=()=>{ let id=localStorage.getItem('deviceId'); if(!id){ id=(crypt
 async function post(path, body, auth=true){ const h={'Content-Type':'application/json'}; if(auth && state.token) h.Authorization='Bearer '+state.token; const r=await fetch(state.base+path,{method:'POST',headers:h,body:JSON.stringify(body||{})}); const d=await r.json(); if(d.error) throw new Error(d.error); return d; }
 async function get(path, auth=true){ const h={}; if(auth && state.token) h.Authorization='Bearer '+state.token; const r=await fetch(state.base+path,{headers:h}); const d=await r.json(); if(d.error) throw new Error(d.error); return d; }
 
-/* ========= Layout: يجعل الرسائل تظهر من أول كلمة ========= */
+/* ===== Layout: رسائل واضحة حتى مع الكيبورد ===== */
 function atBottom(el,tol=4){ return el.scrollHeight - el.scrollTop - el.clientHeight <= tol; }
 function scrollToBottom(el){ el.scrollTop = el.scrollHeight; }
 
@@ -191,26 +180,38 @@ function layoutChat(){
   const msgs     = document.getElementById('messages');
   if(!composer || !msgs) return;
 
+  // اخفاء الشريط وقت الكيبورد لتكبير المساحة
+  if (kb > 0) nav.classList.add('hidden'); else nav.classList.remove('hidden');
+
+  // المؤلف فوق الكيبورد أو فوق الشريط
   const navH = (kb > 0) ? 0 : (nav?.offsetHeight || 0);
   composer.style.bottom = (kb > 0 ? kb : navH) + 'px';
 
-  const headerH = header?.offsetHeight || 0;
-  const compH   = composer.offsetHeight || 0;
-  const safe    = 0; // env(safe-area-inset-bottom) غير قابل للقراءة بالـ JS مباشرة
+  // احسب الارتفاع المتاح
+  const headerH = header?.getBoundingClientRect().height || 0;
+  const compH   = composer.getBoundingClientRect().height || 0;
 
-  const totalUsed = headerH + compH + (kb > 0 ? 0 : navH) + safe;
-  const avail = Math.max(120, window.innerHeight - totalUsed);
+  // لما الكيبورد مفتوح: اعتبر avail = ارتفاع الـ viewport المرئي - header - composer
+  // لما الكيبورد مغلق: avail = ارتفاع النافذة - header - composer - nav
+  let avail;
+  if (kb > 0 && vv){
+    avail = Math.max(120, Math.round(vv.height - headerH - compH));
+  } else {
+    avail = Math.max(120, Math.round(window.innerHeight - headerH - compH - navH));
+  }
 
   const stick = atBottom(msgs);
   msgs.style.height = avail + 'px';
   if (stick) scrollToBottom(msgs);
 }
+
+// ربط الأحداث
 window.visualViewport && visualViewport.addEventListener('resize', layoutChat);
 window.addEventListener('resize', layoutChat);
 window.addEventListener('orientationchange', layoutChat);
 document.addEventListener('focusin', e=>{ if(e.target.id==='msg') layoutChat(); });
 
-/* ========= UI ========= */
+/* ===== UI ===== */
 function setLoggedIn(me){
   state.me=me; state.role=me.role; state.color=me.color||'#fff';
   $('#login').style.display='none';
@@ -244,7 +245,6 @@ function renderPresence(list){
     b.onclick=()=> openUserMenu(u.userId,u.username);
     box.appendChild(b);
   });
-  // تحديث قائمة الخاص
   const dl=$('#dmList'); dl.innerHTML='';
   list.forEach(u=>{
     if(u.userId===state.me?.userId) return;
@@ -255,7 +255,7 @@ function renderPresence(list){
   });
 }
 
-/* ========= قائمة المستخدم + أدوات الإدارة (يشمل كشف معلومات) ========= */
+/* ===== قائمة المستخدم + الإدارة (يشمل كشف معلومات) ===== */
 async function openUserMenu(userId, username){
   const wrap=el('div','modal'); const sheet=el('div','sheet'); wrap.appendChild(sheet);
   const row=el('div','row'); sheet.appendChild(row);
@@ -284,7 +284,7 @@ async function openUserMenu(userId, username){
   document.body.appendChild(wrap); wrap.style.display='flex';
 }
 
-/* ========= DM ========= */
+/* ===== DM ===== */
 function openDM(userId, username){
   state.dmWith={userId,username}; $('#dmTitle').textContent='خاص: '+username;
   $('#dmBody').innerHTML=''; $('#dmWin').style.display='flex'; $('#dmInput').focus();
@@ -294,7 +294,7 @@ $('#dmClose').onclick=()=> $('#dmWin').style.display='none';
 $('#dmMin').onclick=()=> $('#dmWin').style.display='none';
 let dmMaxed=false; $('#dmMax').onclick=()=>{ dmMaxed=!dmMaxed; $('#dmWin').classList.toggle('dmMax', dmMaxed); };
 
-/* ========= مودالات ========= */
+/* ===== مودالات ===== */
 const open = sel => $(sel).style.display='flex';
 const close = sel => $(sel).style.display='none';
 $('#openSettings').onclick = ()=> open('#settingsModal');
@@ -305,17 +305,17 @@ document.querySelectorAll('[data-close]').forEach(b=> b.onclick = e => close(e.c
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e=>{ if (e.target.classList.contains('modal')) e.currentTarget.style.display='none'; }));
 $('#btnClearLocal').onclick = ()=>{ localStorage.clear(); alert('تم مسح التخزين المحلي.'); };
 
-/* ========= إرسال الرسائل ========= */
+/* ===== إرسال الرسائل ===== */
 $('#send').onclick = sendMsg;
 $('#msg').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendMsg(); }});
 function sendMsg(){
   const t=$('#msg').value.trim(); if(!t) return;
   state.socket.emit('chat:msg',{text:t});
   $('#msg').value=''; $('#msg').focus();
-  layoutChat(); // يبقي آخر رسالة ظاهرة من أول كلمة
+  layoutChat(); // يضمن ظهور الرسالة فورًا
 }
 
-/* ========= تسجيل الدخول + السوكِت ========= */
+/* ===== Auth + Socket ===== */
 $('#loginQuick').onclick = ()=> doLogin('user');
 $('#loginAdmin').onclick = ()=> doLogin('admin');
 
@@ -351,7 +351,7 @@ function connectSocket(){
   setTimeout(layoutChat,0);
 }
 
-/* ========= لوحة أدمن سريعة ========= */
+/* ===== لوحة أدمن سريعة ===== */
 $('#iconAdmin').onclick = async ()=>{
   if(state.role!=='admin' && state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
   open('#settingsModal');
