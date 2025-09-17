@@ -5,50 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>غرفة العرب</title>
 <style>
-  :root{
-    --bg:#0a0b0e; --surface:#0f1218; --line:#222630;
-    --fg:#e7eaf0; --muted:#a7afbd; --accent:#30c0ff; --danger:#ef4444; --ok:#22c55e;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100dvh}
-  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto}
+  :root{--bg:#0a0b0e;--surface:#0f1218;--line:#222630;--fg:#e7eaf0;--muted:#a7afbd;--accent:#30c0ff;--ok:#22c55e;--danger:#ef4444}
+  *{box-sizing:border-box} html,body{height:100dvh} body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto}
   .wrap{max-width:920px;margin:0 auto;height:100dvh;display:flex;flex-direction:column}
-
-  /* Header */
   .top{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
-  .title{font-weight:800}
-  .pill{background:#0d131c;border:1px solid var(--line);padding:2px 7px;border-radius:8px;color:#cdd5e1}
-  .sp{margin-inline-start:auto;display:flex;gap:8px}
-  .btn{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#0c1017;cursor:pointer}
-  .btn:active{transform:scale(.98)}
-
-  /* Messages area */
+  .title{font-weight:800}.pill{background:#0d131c;border:1px solid var(--line);padding:2px 7px;border-radius:8px;color:#cdd5e1}
+  .sp{margin-inline-start:auto;display:flex;gap:8px}.btn{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#0c1017;cursor:pointer}
   .log{flex:1;overflow:auto;background:#0b0c10;padding:8px 10px;scroll-behavior:auto;-webkit-overflow-scrolling:touch}
   .row{padding:8px 10px;margin:4px 0;border-radius:8px}
   .head{direction:ltr;text-align:left;font-weight:700;display:flex;gap:6px;align-items:baseline}
-  .nick{color:#59caff;cursor:pointer}
-  .time{color:var(--muted);font-size:12px}
-  .txt{white-space:pre-wrap;word-break:break-word}
-  .sys{color:#9fb4c7;font-style:italic;white-space:pre-wrap;padding:6px 8px;margin:8px 0}
-
-  /* Composer strip (old style) */
+  .nick{color:#59caff;cursor:pointer}.time{color:var(--muted);font-size:12px}.txt{white-space:pre-wrap;word-break:break-word}
+  .sys{color:#9fb4c7;font-style:italic;white-space:pre-wrap;padding:6px 8px;margin:8px 0;border-left:3px solid #2a3a4a;background:#0b1118;border-radius:6px}
   .dock{background:var(--surface);border-top:1px solid var(--line);padding:8px;position:sticky;bottom:0}
   .dock .row1{display:flex;gap:8px;align-items:center}
   .send{width:58px;height:46px;border-radius:12px;background:var(--accent);color:#001018;border:1px solid var(--line);font-weight:800;cursor:pointer}
   #msg{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:#05070b;color:#fff;padding:0 14px;font-size:17px}
   .tabs{display:flex;gap:8px;justify-content:space-between;margin-top:8px}
-  .tab{flex:1;display:flex;gap:8px;align-items:center;justify-content:center;background:#0b0f16;border:1px solid var(--line);border-radius:10px;padding:8px;color:#d7dee8}
+  .tab{flex:1;display:flex;gap:8px;align-items:center;justify-content:center;background:#0b0f16;border:1px solid var(--line);border-radius:10px;padding:10px;color:#d7dee8;cursor:pointer}
 
-  /* People drawer */
   .drawer{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:30}
   .panel{background:var(--surface);border-bottom:1px solid var(--line);position:absolute;left:0;right:0;top:0;max-width:920px;margin:0 auto}
   .ph{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
-  .list{max-height:55vh;overflow:auto}
-  .user{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
-  .uname{direction:ltr}
+  .list{max-height:55vh;overflow:auto}.user{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)} .uname{direction:ltr}
 
-  /* DM window */
   .dm{position:fixed;right:10px;bottom:92px;width:360px;max-width:92vw;display:none;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;z-index:40;box-shadow:0 12px 32px rgba(0,0,0,.55)}
   .dmH{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
   .dmB{max-height:46vh;overflow:auto;padding:10px}
@@ -57,7 +37,6 @@
   .dmC button{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018}
   .dmMax{inset:0!important;width:auto!important;height:auto!important;max-width:none!important;border-radius:0!important}
 
-  /* Login */
   .login{position:fixed;inset:0;background:#0b0c0fe6;display:flex;align-items:center;justify-content:center;z-index:99}
   .card{width:min(92vw,540px);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
   .rowi{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
@@ -65,7 +44,6 @@
   .card .btn{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018;cursor:pointer}
   .ghost{background:transparent;color:#d8e0ea}
 
-  /* Admin sheet */
   .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:50}
   .sheetBox{max-width:880px;margin:8vh auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .sheetHd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -74,14 +52,11 @@
   .b{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#0b0e14;color:#d8e0ea;cursor:pointer}
   .b.warn{background:#221a05;color:#fcd174;border-color:#3a2b07}
 
-  @supports (-webkit-touch-callout:none){
-    input,textarea,select,button{font-size:16px!important}
-  }
+  @supports (-webkit-touch-callout:none){ input,textarea,select,button{font-size:16px!important} }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <!-- Header -->
   <div class="top">
     <span class="pill" id="online">0</span>
     <span class="title">#العرب</span>
@@ -92,7 +67,6 @@
     </div>
   </div>
 
-  <!-- Login -->
   <div class="login" id="login">
     <div class="card">
       <h3 style="margin:0 0 10px">تسجيل الدخول</h3>
@@ -112,25 +86,23 @@
     </div>
   </div>
 
-  <!-- Messages -->
   <div id="messages" class="log"></div>
 
-  <!-- Composer + bottom tabs -->
   <div class="dock">
     <div class="row1">
       <button class="send" id="send">➤</button>
       <input id="msg" placeholder="اكتب رسالة…">
     </div>
     <div class="tabs">
-      <div class="tab">🙂 خاص</div>
-      <div class="tab">📍 الغرف</div>
-      <div class="tab">🗨️ الحائط</div>
-      <div class="tab">⚙️ الضبط</div>
+      <div class="tab" id="tDM">🙂 خاص</div>
+      <div class="tab" id="tRooms">📍 الغرف</div>
+      <div class="tab" id="tWall">🗨️ الحائط</div>
+      <div class="tab" id="tSettings">⚙️ الضبط</div>
     </div>
   </div>
 </div>
 
-<!-- People drawer -->
+<!-- People -->
 <div class="drawer" id="drawer">
   <div class="panel">
     <div class="ph">
@@ -158,7 +130,7 @@
   </div>
 </div>
 
-<!-- Admin sheet (bans + unban) -->
+<!-- Admin sheet -->
 <div class="sheet" id="sheet">
   <div class="sheetBox">
     <div class="sheetHd">
@@ -173,20 +145,18 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* ===== helpers ===== */
 const state={ base:location.origin, token:null, me:null, socket:null, role:'user', color:'#59caff', dmWith:null };
-const $=s=>document.querySelector(s); const el=(t,c)=>{const x=document.createElement(t); if(c)x.className=c; return x;};
+const $=s=>document.querySelector(s), el=(t,c)=>{const x=document.createElement(t); if(c)x.className=c; return x;};
 const deviceId=()=>{ let id=localStorage.getItem('deviceId'); if(!id){ id=(crypto.randomUUID&&crypto.randomUUID())||Math.random().toString(36).slice(2); localStorage.setItem('deviceId',id);} return id; };
-async function post(p,body,auth=true){const h={'Content-Type':'application/json'};if(auth&&state.token)h.Authorization='Bearer '+state.token;const r=await fetch(state.base+p,{method:'POST',headers:h,body:JSON.stringify(body||{})});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
-async function get(p,auth=true){const h={};if(auth&&state.token)h.Authorization='Bearer '+state.token;const r=await fetch(state.base+p,{headers:h});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
+async function post(p,b,a=true){const h={'Content-Type':'application/json'}; if(a&&state.token)h.Authorization='Bearer '+state.token; const r=await fetch(state.base+p,{method:'POST',headers:h,body:JSON.stringify(b||{})}); const d=await r.json(); if(d.error) throw new Error(d.error); return d;}
+async function get(p,a=true){const h={}; if(a&&state.token)h.Authorization='Bearer '+state.token; const r=await fetch(state.base+p,{headers:h}); const d=await r.json(); if(d.error) throw new Error(d.error); return d;}
 
-/* ===== login ===== */
+// ===== login
 async function doLogin(kind){
   try{
     let data;
     if(kind==='admin'){
-      const au=($('#au').value||'').trim(), ap=$('#ap').value||'';
-      data=await post('/api/login-pass',{username:au,password:ap,deviceId:deviceId()},false);
+      data=await post('/api/login-pass',{username:($('#au').value||'').trim(),password:$('#ap').value||'',deviceId:deviceId()},false);
     }else{
       let name=($('#lu').value||'').trim(); if(!/^[A-Za-z0-9_.-]{3,20}$/.test(name||'')) name='';
       data=await post('/api/login',{username:name,deviceId:deviceId()},false);
@@ -194,14 +164,8 @@ async function doLogin(kind){
     state.token=data.token; state.me={userId:data.userId,username:data.username}; state.role=data.role;
     $('#login').style.display='none';
 
-    // ترحيب 4 أسطر
-    pushSys(
-`أهلاً وسهلاً بك في غرفة العرب — نتمنّى لك وقتًا ممتعًا 🤝
-❤️😍🥳
-☺️😎
-🥳🥳
-😜`
-    );
+    // ترحيب "مثبّت" أعلى السجل (لا يُحذف)
+    pushWelcome();
 
     connectSocket();
     setTimeout(()=>{ layout(); stickToBottom(true); },0);
@@ -211,56 +175,60 @@ $('#btnUser').onclick=()=>doLogin('user');
 $('#btnAdmin').onclick=()=>doLogin('admin');
 $('#btnSkip').onclick=()=>doLogin('user');
 
-/* ===== socket ===== */
+// ===== socket
 function connectSocket(){
   state.socket=io(state.base,{auth:{token:state.token}});
 
-  state.socket.on('history',arr=>{ $('#messages').innerHTML=''; arr.forEach(pushLine); forceStick(); });
+  state.socket.on('history',arr=>{ $('#messages').innerHTML=''; pushWelcome(); arr.forEach(pushLine); forceStick(); });
   state.socket.on('chat:new',pushLine);
   state.socket.on('presence',list=>{ renderPresence(list); cacheUsers(list); });
-  state.socket.on('system',m=> pushSys(m.text||''));  
+  state.socket.on('system',m=> pushSys(m.text||''));
   state.socket.on('admin:clear',()=> $('#messages').innerHTML='');
   state.socket.on('banned',info=>{ alert((info&&info.reason)||'تم الحظر'); state.socket.disconnect(); });
 
-  // DM
   state.socket.on('dm:new', rec=>{
     if(state.dmWith && (rec.fromId===state.dmWith.userId || rec.toId===state.dmWith.userId)){
       const line=document.createElement('div');
       line.textContent=(rec.fromId===state.dmWith.userId? state.dmWith.username : 'أنا')+': '+rec.text;
-      $('#dmB').appendChild(line);
-      $('#dmB').scrollTop=$('#dmB').scrollHeight;
+      $('#dmB').appendChild(line); $('#dmB').scrollTop=$('#dmB').scrollHeight;
     }
   });
 }
 
-/* ===== messages + sticky bottom (strong) ===== */
+// ===== messages + sticky
 const M=()=>document.getElementById('messages');
 function isNearBottom(el,tol=6){return(el.scrollHeight-el.scrollTop-el.clientHeight)<=tol}
 let _stick=true;
-function forceStick(){const el=M(); if(!el) return; let tries=0; function step(){el.scrollTop=el.scrollHeight; if(++tries<5) requestAnimationFrame(step);} requestAnimationFrame(step);}
+function forceStick(){const el=M(); if(!el) return; let i=0; function step(){el.scrollTop=el.scrollHeight; if(++i<5) requestAnimationFrame(step);} requestAnimationFrame(step);}
 function stickToBottom(force=false){ if(force||_stick) forceStick(); }
 
+function pushWelcome(){
+  const w=el('div','sys');
+  w.id='welcomeLine';
+  w.textContent = `أهلاً وسهلاً بك في غرفة العرب — نتمنّى لك وقتًا ممتعًا 🤝
+❤️😍🥳
+☺️😎
+🥳🥳
+😜`;
+  if(!document.getElementById('welcomeLine')) M().appendChild(w);
+}
 function pushSys(t){ const s=el('div','sys'); s.textContent='→ '+t; M().appendChild(s); stickToBottom(true); }
 
 const userIndex=new Map(); // username => userObj
 function cacheUsers(list){ list.forEach(u=> userIndex.set(u.username,u)); }
-
 function pushLine(m){
   const row=el('div','row');
   const head=el('div','head');
-  const name=document.createElement('span'); name.className='nick'; name.style.color=m.color||'#59caff'; name.textContent=m.from; name.dataset.username=m.from;
-  if(m.userId) name.dataset.userId=m.userId;
+  const name=document.createElement('span'); name.className='nick'; name.style.color=m.color||'#59caff'; name.textContent=m.from; name.dataset.username=m.from; if(m.userId) name.dataset.userId=m.userId;
   name.onclick=()=> openUserMenuByName(name.dataset.username);
   const time=document.createElement('span'); time.className='time'; time.textContent=new Date(m.ts).toLocaleTimeString();
   head.append(name,time);
   const txt=el('div','txt'); txt.textContent=m.text;
-  row.append(head,txt);
-  M().appendChild(row);
-  stickToBottom(true);
+  row.append(head,txt); M().appendChild(row); stickToBottom(true);
 }
-M().addEventListener('scroll',()=>{_stick=isNearBottom(M());},{passive:true});
+M().addEventListener('scroll',()=>{ _stick=isNearBottom(M()); },{passive:true});
 
-/* ===== presence ===== */
+// ===== presence
 function renderPresence(list){
   $('#online').textContent=list.length;
   $('#pcount').textContent=`${list.length} متواجد`;
@@ -276,13 +244,11 @@ $('#iPeople').onclick=()=> $('#drawer').style.display='block';
 $('#closeDrawer').onclick=()=> $('#drawer').style.display='none';
 $('#drawer').onclick=(e)=>{ if(e.target.id==='drawer') $('#drawer').style.display='none'; };
 
-/* ===== user menu (reply/DM + admin tools) ===== */
+// ===== user menu
 function openUserMenuByName(username){ const u=userIndex.get(username)||{username}; userMenu(u); }
 function userMenu(u){
-  const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:45';
-  const box=document.createElement('div');
-  box.style.cssText='background:#0f1218;border:1px solid var(--line);padding:12px;border-radius:10px;min-width:300px';
+  const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:45';
+  const box=document.createElement('div'); box.style.cssText='background:#0f1218;border:1px solid var(--line);padding:12px;border-radius:10px;min-width:300px';
   box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
     <strong style="direction:ltr;color:${u.color||'#9ed0ff'}">${u.username}</strong>
     <button class="b" id="x">✕</button>
@@ -294,9 +260,9 @@ function userMenu(u){
 
   if(state.role==='admin'||state.role==='mod'){
     const info=btn('كشف معلومات',async()=>{ const key=u.userId?('userId='+encodeURIComponent(u.userId)):('username='+encodeURIComponent(u.username)); const d=await get('/api/admin/user-info?'+key,true); alert(`userId:${d.userId}\nusername:${d.username}\nrole:${d.role}\ndevice:${d.deviceId}\nIP:${d.ip}`); });
-    const kick=btn('طرد',()=>post('/api/admin/kick',{deviceId:u.deviceId,reason:'admin'},true));
-    const banDev=btn('حظر جهاز',()=>post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId,reason:'admin'},true));
-    const banIp=btn('حظر IP',()=>post('/api/admin/ban',{targetType:'ip',targetValue:u.ip,reason:'admin'},true));
+    const kick=btn('طرد',async()=>{ await post('/api/admin/kick',{deviceId:u.deviceId},true); });
+    const banDev=btn('حظر جهاز',async()=>{ await post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId},true); });
+    const banIp=btn('حظر IP',async()=>{ await post('/api/admin/ban',{targetType:'ip',targetValue:u.ip},true); });
     row.append(info,kick,banDev,banIp);
   }
   box.appendChild(row); ov.appendChild(box); document.body.appendChild(ov);
@@ -304,24 +270,19 @@ function userMenu(u){
   function btn(t,fn){ const b=document.createElement('button'); b.className='b'; b.textContent=t; b.onclick=fn; return b; }
 }
 
-/* ===== DM ===== */
-function showDM(userId,username){
-  state.dmWith={userId,username};
-  $('#dmT').textContent='خاص: '+username; $('#dmB').innerHTML=''; $('#dm').style.display='flex'; $('#dmI').focus();
-}
+// ===== DM
+function showDM(userId,username){ state.dmWith={userId,username}; $('#dmT').textContent='خاص: '+username; $('#dmB').innerHTML=''; $('#dm').style.display='flex'; $('#dmI').focus(); }
 $('#dmX').onclick=()=> $('#dm').style.display='none';
 $('#dmMin').onclick=()=> $('#dm').style.display='none';
 let dmFull=false; $('#dmFull').onclick=()=>{ dmFull=!dmFull; $('#dm').classList.toggle('dmMax',dmFull); };
-$('#dmS').onclick=sendDM;
-$('#dmI').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendDM(); }});
+$('#dmS').onclick=sendDM; $('#dmI').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendDM(); }});
 function sendDM(){ const t=$('#dmI').value.trim(); if(!t||!state.dmWith) return; state.socket.emit('dm:send',{toId:state.dmWith.userId,text:t}); $('#dmI').value=''; $('#dmI').focus(); }
 
-/* ===== send ===== */
-$('#send').onclick=send;
-$('#msg').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
+// ===== إرسال
+$('#send').onclick=send; $('#msg').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
 function send(){ const t=$('#msg').value.trim(); if(!t) return; state.socket.emit('chat:msg',{text:t}); $('#msg').value=''; $('#msg').focus(); stickToBottom(true); }
 
-/* ===== Admin sheet (bans + unban) ===== */
+// ===== لوحة الإدارة
 $('#iAdmin').onclick=async()=>{
   if(state.role!=='admin'&&state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
   $('#sheet').style.display='block';
@@ -334,7 +295,8 @@ $('#iAdmin').onclick=async()=>{
       const r=el('div','rowAdmin');
       r.innerHTML=`<span class="b" style="background:#0a1016;border-color:#253041">${b.targetType==='ip'?'IP':'جهاز'}</span>
                    <strong style="direction:ltr">${b.targetValue}</strong>
-                   <span style="color:var(--muted);font-size:12px">${b.ts?new Date(b.ts).toLocaleString():''}</span>`;
+                   <span style="color:var(--muted);font-size:12px">${b.ts?new Date(b.ts).toLocaleString():''}</span>
+                   <span class="b" style="opacity:.6">بواسطة ${b.by||'-'}</span>`;
       const un=el('button','b warn'); un.textContent='فك حظر';
       un.onclick=async()=>{ try{ await post('/api/admin/unban',{targetType:b.targetType,targetValue:b.targetValue},true); r.remove(); }catch(e){ alert(e.message||'فشل فك الحظر'); } };
       r.appendChild(un); bd.appendChild(r);
@@ -343,19 +305,18 @@ $('#iAdmin').onclick=async()=>{
 };
 $('#sheetX').onclick=()=> $('#sheet').style.display='none';
 
-/* ===== info ===== */
-$('#iInfo').onclick=()=> alert('غرفة العرب — نسخة واجهة قديمة محسّنة');
+// ===== تبويبات سفلية (تعمل)
+$('#tDM').onclick = ()=> { if(!state.dmWith){ alert('اختر مستخدم من المتواجدين لفتح الخاص.'); } else { $('#dm').style.display='flex'; $('#dmI').focus(); } };
+$('#tRooms').onclick = ()=> alert('الغرفة الحالية: #العرب');
+$('#tWall').onclick = ()=> alert('الحائط: قريباً ✨');
+$('#tSettings').onclick = ()=> alert('الإعدادات: قريباً ✨');
 
-/* ===== layout & iOS keyboard ===== */
-function layout(){
-  const vv=window.visualViewport, vvh=vv?vv.height:window.innerHeight;
-  const topH=document.querySelector('.top').getBoundingClientRect().height;
-  const dockH=document.querySelector('.dock').getBoundingClientRect().height;
-  const h=Math.max(160,Math.round(vvh-topH-dockH));
-  M().style.height=h+'px';
-}
-let kbLoop=null;
-function startKBLoop(){ if(kbLoop) return; const step=()=>{ layout(); stickToBottom(); kbLoop=requestAnimationFrame(step); }; kbLoop=requestAnimationFrame(step); }
+// ===== Info
+$('#iInfo').onclick=()=> alert('غرفة العرب — نسخة قديمة محسّنة');
+
+// ===== تخطيط وكيبورد iOS
+function layout(){ const vv=window.visualViewport, vvh=vv?vv.height:window.innerHeight; const topH=document.querySelector('.top').getBoundingClientRect().height; const dockH=document.querySelector('.dock').getBoundingClientRect().height; const h=Math.max(160,Math.round(vvh-topH-dockH)); M().style.height=h+'px'; }
+let kbLoop=null; function startKBLoop(){ if(kbLoop) return; const step=()=>{ layout(); stickToBottom(); kbLoop=requestAnimationFrame(step); }; kbLoop=requestAnimationFrame(step); }
 function stopKBLoop(){ if(kbLoop){ cancelAnimationFrame(kbLoop); kbLoop=null; } }
 window.visualViewport && visualViewport.addEventListener('resize',()=>{ layout(); stickToBottom(); });
 window.addEventListener('resize',()=>{ layout(); stickToBottom(); });
