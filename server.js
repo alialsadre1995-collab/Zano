@@ -1,4 +1,4 @@
-// server.js — مالك + إدارة مشرفين + حظر دائم JSON
+// server.js — مالك + مشرفين بكلمات سر + user-info + حظر دائم JSON (ملفان فقط)
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -15,91 +15,103 @@ const io = new Server(server, { cors:{ origin:'*', methods:['GET','POST','DELETE
 app.use(cors());
 app.use(express.json());
 
+/* إعدادات */
 const PORT        = process.env.PORT || 3000;
 const JWT_SECRET  = process.env.JWT_SECRET  || 'super-secret';
-const ADMIN_PASS  = process.env.ADMIN_PASS  || '1200@';        // يمنح admin مباشر
-const OWNER_PASS  = process.env.OWNER_PASS  || 'super@1200';   // يمنح owner
+const ADMIN_PASS  = process.env.ADMIN_PASS  || '1200@';       // كلمة سر عامة للأدمن (اختياري)
+const OWNER_PASS  = process.env.OWNER_PASS  || 'super@1200';  // كلمة سر المالك
 
-// ملفات تخزين
+/* ملفات التخزين */
 const BANS_FILE  = path.join(__dirname,'bans.json');
 const ROLES_FILE = path.join(__dirname,'roles.json');
 
-// مخازن بالذاكرة
+/* مخازن */
 const messages = [];
-const sockets  = new Map();            // socket.id -> user
-let bans       = [];                   // [{targetType:'ip'|'deviceId',targetValue,reason,by,ts}]
-let roles      = { mods:[] };          // {mods:[{username, role:'admin'|'mod', perms:{kick,banDevice,banIp,unban,clear}}]}
-const lastJoin = new Map();            // لمنع تكرار رسالة الانضمام 5 دقائق
+const sockets  = new Map(); // socket.id -> user
+let bans  = [];
+let roles = { mods:[] };    // {username, role:'admin'|'mod', passHash?, perms:{}}
+const lastJoin = new Map();
 
-// أدوات
 const now = ()=> Date.now();
 const FIVE_MIN = 5*60*1000;
 
+/* أدوات */
 function ipFromHeaders(h){ const xf=h['x-forwarded-for']; if(Array.isArray(xf)) return xf[0]; if(xf) return xf.split(',')[0].trim(); return ''; }
 function ipFromReq(req){ return ipFromHeaders(req.headers) || req.socket?.remoteAddress || ''; }
 function ipFromSocket(s){ return ipFromHeaders(s.handshake.headers) || s.handshake.address || ''; }
-
 function latinOrGuest(name){ return /^[A-Za-z0-9_.-]{3,20}$/.test(name||'') ? name : 'Guest'+Math.floor(1000+Math.random()*9000); }
 function colorFor(name){ const h=crypto.createHash('md5').update(name).digest('hex'); const n=parseInt(h.slice(0,2),16); return ['#30c0ff','#22c55e','#f59e0b','#e879f9','#f43f5e','#38bdf8'][n%6]; }
 function sys(text){ io.emit('system',{text}); }
-
+function hash(p){ return crypto.createHash('sha256').update(String(p)).digest('hex'); }
 function isBanned({ip,deviceId}){
   return bans.some(b=> (b.targetType==='ip' && ip && b.targetValue===ip) ||
                        (b.targetType==='deviceId' && deviceId && b.targetValue===deviceId));
 }
-
-// تحميل/حفظ JSON
+/* JSON */
 function loadJson(file, fallback){ try{ if(fs.existsSync(file)) return JSON.parse(fs.readFileSync(file,'utf8')||'null')||fallback; }catch(_){} return fallback; }
 function saveJson(file, data){ try{ fs.writeFileSync(file, JSON.stringify(data,null,2)); }catch(_){} }
 function loadAll(){ bans = loadJson(BANS_FILE,[]); roles = loadJson(ROLES_FILE,{mods:[]}); }
 loadAll();
 
-// صلاحيات افتراضية للـ admin و mod
 const DEFAULT_PERMS = {
-  admin: { kick:true, banDevice:true, banIp:true,  unban:true,  clear:true  },
-  mod:   { kick:true, banDevice:true, banIp:false, unban:false, clear:false }
+  admin:{kick:true,banDevice:true,banIp:true,unban:true,clear:true},
+  mod:{kick:true,banDevice:true,banIp:false,unban:false,clear:false}
 };
 function permsFor(role){
-  if(role==='owner') return { kick:true, banDevice:true, banIp:true, unban:true, clear:true };
+  if(role==='owner') return {kick:true,banDevice:true,banIp:true,unban:true,clear:true};
   if(role==='admin') return DEFAULT_PERMS.admin;
   if(role==='mod')   return DEFAULT_PERMS.mod;
   return {};
 }
-function findMod(name){ return roles.mods.find(m => (m.username||'').toLowerCase() === (name||'').toLowerCase()); }
+function findMod(name){ return (roles.mods||[]).find(m => (m.username||'').toLowerCase()===(name||'').toLowerCase()); }
 
-// Middleware JWT
+/* JWT */
 function auth(req,res,next){
   const h=req.headers.authorization||''; const t=h.startsWith('Bearer ')?h.slice(7):'';
   if(!t) return res.status(401).json({error:'no token'});
   try{ req.user=jwt.verify(t,JWT_SECRET); next(); }catch{ res.status(401).json({error:'bad token'}); }
 }
-function needRole(role){ // 'owner' فقط
-  return (req,res,next)=> (req.user && req.user.role===role) ? next() : res.status(403).json({error:'forbidden'});
-}
-function allow(permsKey){ // يعتمد على صلاحيات المستخدم
+function needRole(role){ return (req,res,next)=> (req.user && req.user.role===role) ? next() : res.status(403).json({error:'forbidden'}); }
+function allow(permsKey){
   return (req,res,next)=>{
     const u=req.user; if(!u) return res.status(401).json({error:'no auth'});
     if(u.role==='owner') return next();
-    const p = u.perms||{};
-    if(p[permsKey]) return next();
+    const p=u.perms||{}; if(p[permsKey]) return next();
     return res.status(403).json({error:'forbidden'});
   };
 }
 
-// ====== تسجيل الدخول
+/* ===== دخول مستخدم عادي */
 app.post('/api/login',(req,res)=>{
   const { username='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
   if(isBanned({ip,deviceId})) return res.status(403).json({error:'banned'});
   const uname = latinOrGuest(username);
-  // لو الاسم موجود ضمن المشرفين نرفعه
   const mod = findMod(uname);
-  const role = mod ? mod.role : 'user';
+  // لو للمشرف كلمة سر، ما نرفع الدور تلقائيًا
+  const elevate = mod && !mod.passHash;
+  const role = elevate ? mod.role : 'user';
   const userId = crypto.randomUUID();
-  const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod?mod.perms:permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+  const token = jwt.sign({userId,username:uname,role,deviceId,perms: elevate?(mod.perms||permsFor(role)):{}}, JWT_SECRET, {expiresIn:'7d'});
   res.json({ token, userId, username:uname, role });
 });
 
+/* ===== دخول مشرف باسمه وكلمة سره */
+app.post('/api/login-mod',(req,res)=>{
+  const { username='', password='', deviceId='' } = req.body||{};
+  const ip = ipFromReq(req);
+  if(isBanned({ip,deviceId})) return res.status(403).json({error:'banned'});
+  const uname = latinOrGuest(username);
+  const mod = findMod(uname);
+  if(!mod || !mod.passHash) return res.status(401).json({error:'not a moderator'});
+  if(mod.passHash !== hash(password)) return res.status(401).json({error:'wrong password'});
+  const userId = crypto.randomUUID();
+  const role   = mod.role||'mod';
+  const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod.perms||permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+  res.json({ token, userId, username:uname, role });
+});
+
+/* ===== دخول أدمن عام (اختياري) */
 app.post('/api/login-pass',(req,res)=>{
   const { username='Admin', password='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
@@ -112,6 +124,7 @@ app.post('/api/login-pass',(req,res)=>{
   res.json({ token, userId, username:uname, role });
 });
 
+/* ===== دخول المالك */
 app.post('/api/login-owner',(req,res)=>{
   const { username='Owner', password='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
@@ -124,7 +137,7 @@ app.post('/api/login-owner',(req,res)=>{
   res.json({ token, userId, username:uname, role });
 });
 
-// ====== إدارة الحظر (تحترم الصلاحيات)
+/* ===== إدارة الحظر */
 app.get('/api/admin/bans', auth, allow('unban'), (req,res)=> res.json([...bans].sort((a,b)=>(b.ts||0)-(a.ts||0))));
 app.post('/api/admin/unban', auth, allow('unban'), (req,res)=>{
   const {targetType,targetValue}=req.body||{};
@@ -143,13 +156,11 @@ app.post('/api/admin/ban', auth, (req,res,next)=> allow(req.body?.targetType==='
     bans.push({targetType,targetValue,reason,by:req.user.username,ts:now()});
     saveJson(BANS_FILE,bans);
   }
-  // اسم بدون إظهار IP
   let name = '';
   for(const [,u] of sockets){
     if((targetType==='ip' && u.ip===targetValue) || (targetType==='deviceId' && u.deviceId===targetValue)){ name=u.username; break; }
   }
   sys(`تم حظر ${name||'مستخدم'}`);
-  // فصل المتأثرين
   for(const [sid,u] of sockets.entries()){
     if( (targetType==='ip' && u.ip===targetValue) || (targetType==='deviceId' && u.deviceId===targetValue) ){
       const s=io.sockets.sockets.get(sid);
@@ -165,63 +176,66 @@ app.post('/api/admin/kick', auth, allow('kick'), (req,res)=>{
     if(u.deviceId===deviceId){ const s=io.sockets.sockets.get(sid); if(s){ done=true; name=u.username; s.emit('banned',{reason:'kicked'}); s.disconnect(true);} }
   }
   if(done) sys(`تم طرد ${name||'مستخدم'}`);
+  res.json({ok:done});
+});
+
+/* ===== كشف معلومات */
+app.get('/api/admin/user-info', auth, (req,res)=>{
+  const byId=req.query.userId, byName=(req.query.username||'').toLowerCase();
+  for(const [,u] of sockets.entries()){
+    if( (byId && u.userId===byId) || (byName && (u.username||'').toLowerCase()===byName) ){
+      return res.json({userId:u.userId,username:u.username,role:u.role,ip:u.ip,deviceId:u.deviceId,connectedAt:u.connectedAt});
+    }
+  }
+  res.status(404).json({error:'not found'});
+});
+
+/* ===== إدارة المشرفين (مالك فقط) */
+app.get('/api/owner/mods', auth, needRole('owner'), (req,res)=> res.json(roles.mods||[]));
+app.post('/api/owner/mods', auth, needRole('owner'), (req,res)=>{
+  const {username,role='mod',password} = req.body||{};
+  if(!username) return res.status(400).json({error:'no username'});
+  let mod=findMod(username);
+  if(!mod){ mod={username,role,perms:permsFor(role)}; roles.mods.push(mod); }
+  else { mod.role=role; mod.perms=permsFor(role); }
+  if(password) mod.passHash=hash(password);
+  saveJson(ROLES_FILE,roles);
+  res.json({ok:true,mod});
+});
+app.delete('/api/owner/mods/:username', auth, needRole('owner'), (req,res)=>{
+  const uname=req.params.username.toLowerCase();
+  roles.mods=(roles.mods||[]).filter(m=>(m.username||'').toLowerCase()!==uname);
+  saveJson(ROLES_FILE,roles);
   res.json({ok:true});
 });
-app.post('/api/admin/clear', auth, allow('clear'), (req,res)=>{
-  messages.length=0; io.emit('admin:clear'); sys('تم مسح الدردشة'); res.json({ok:true});
-});
 
-// ====== إدارة المشرفين (للـ owner فقط)
-app.get('/api/super/mods', auth, needRole('owner'), (req,res)=> res.json(roles.mods||[]));
-app.post('/api/super/mods', auth, needRole('owner'), (req,res)=>{
-  const {username, role='mod', perms} = req.body||{};
-  if(!username || !['admin','mod'].includes(role)) return res.status(400).json({error:'bad params'});
-  let m = findMod(username);
-  if(!m){ m={username, role, perms: perms||permsFor(role)}; roles.mods.push(m); }
-  else{ m.role=role; m.perms = perms || m.perms || permsFor(role); }
-  saveJson(ROLES_FILE, roles);
-  res.json({ok:true, saved:m});
-});
-app.delete('/api/super/mods/:username', auth, needRole('owner'), (req,res)=>{
-  const u=(req.params.username||'').toLowerCase();
-  const before=(roles.mods||[]).length;
-  roles.mods = roles.mods.filter(m=> (m.username||'').toLowerCase()!==u);
-  saveJson(ROLES_FILE, roles);
-  res.json({ok:true, removed: before-roles.mods.length});
-});
-
-// ====== Socket.IO
+/* ===== Socket.IO */
 io.use((socket,next)=>{
   try{
-    const token=socket.handshake.auth?.token; if(!token) return next(new Error('no token'));
-    const p=jwt.verify(token,JWT_SECRET); socket.user=p;
-    socket.ip = ipFromSocket(socket);
-    if(isBanned({ip:socket.ip,deviceId:p.deviceId})) return next(new Error('banned'));
-    next();
+    const t=socket.handshake.auth?.token||'';
+    if(!t) return next(new Error('no token'));
+    const u=jwt.verify(t,JWT_SECRET);
+    if(isBanned({ip:ipFromSocket(socket),deviceId:u.deviceId})) return next(new Error('banned'));
+    socket.user=u; next();
   }catch(e){ next(new Error('bad token')); }
 });
 function presence(){
-  const arr=[];
-  for(const [,u] of sockets){
-    arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId}); // بدون IP
-  }
+  const arr=[]; for(const [,u] of sockets){ arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId}); }
   return arr;
 }
-io.on('connection',(socket)=>{
-  const p=socket.user;
-  // لو الاسم صار ضمن المشرفين بعد إصدار التوكن السابق، ارفع الدور
-  const mod=findMod(p.username);
-  const role= mod ? mod.role : p.role;
+io.on('connection',socket=>{
+  const p=socket.user||{};
   const u={
     socketId:socket.id, userId:p.userId, username:p.username,
-    role, perms: mod? (mod.perms || permsFor(role)) : (p.perms || permsFor(role)),
-    deviceId:p.deviceId||'', ip:socket.ip, color:colorFor(p.username)
+    role: p.role, perms: p.perms||{}, deviceId:p.deviceId||'',
+    ip: ipFromSocket(socket), color: colorFor(p.username), connectedAt: now()
   };
   sockets.set(socket.id,u);
 
-  // إعلان انضمام (منع تكرار 5 دقائق)
-  const key=u.deviceId || ('ip:'+u.ip); const last=lastJoin.get(key)||0;
-  if(now()-last>FIVE_MIN){ sys(`${u.username} انضم إلى الغرفة`); lastJoin.set(key,now()); }
+  // رسالة انضمام (مرة كل 5 دقائق لنفس الشخص/الجهاز)
+  const joinKey = u.deviceId || ('ip:'+u.ip);
+  const last = lastJoin.get(joinKey)||0;
+  if(now()-last>FIVE_MIN){ sys(`${u.username} انضم إلى الغرفة`); lastJoin.set(joinKey,now()); }
 
   socket.emit('history', messages.slice(-200));
   io.emit('presence', presence());
@@ -244,7 +258,7 @@ io.on('connection',(socket)=>{
   socket.on('disconnect',()=>{ sockets.delete(socket.id); io.emit('presence', presence()); });
 });
 
-// صفحة
+/* صفحة */
 app.get('/',(req,res)=>{ res.setHeader('Content-Type','text/html; charset=utf-8'); fs.createReadStream(path.join(__dirname,'page.html')).pipe(res); });
 app.get('/healthz',(req,res)=>res.json({ok:true}));
 
