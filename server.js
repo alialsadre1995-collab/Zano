@@ -1,4 +1,4 @@
-// server.js — نسخة مختومة
+// server.js — نسخة مختومة مع حفظ الحظر في bans.json وإخفاء IP عن الدردشة
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -19,15 +19,17 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret';
 const ADMIN_PASS = process.env.ADMIN_PASS || '1200@';
 
-// ===== مخازن بالذاكرة
-const messages = [];                    // تاريخ العام
-const sockets  = new Map();             // socket.id -> user
-const bans     = [];                    // [{targetType:'ip'|'deviceId',targetValue,reason,by,ts}]
-const lastJoin = new Map();             // key(ip|device) -> ts لتفادي تكرار الانضمام 5 دقائق
+const BANS_FILE = path.join(__dirname,'bans.json');
 
-// ===== مساعدات
+// ===== مخازن
+const messages = [];
+const sockets  = new Map(); // socket.id -> user
+let bans       = [];        // [{targetType:'ip'|'deviceId',targetValue,reason,by,ts}]
+const lastJoin = new Map(); // منع تكرار الانضمام 5 دقائق
+
+// ===== IO helpers
 const now = ()=> Date.now();
-const fiveMin = 5*60*1000;
+const FIVE_MIN = 5*60*1000;
 
 function ipFromHeaders(h){
   const xf = h['x-forwarded-for'];
@@ -35,14 +37,11 @@ function ipFromHeaders(h){
   if (xf) return xf.split(',')[0].trim();
   return '';
 }
-function ipFromReq(req){
-  return ipFromHeaders(req.headers) || req.socket?.remoteAddress || '';
-}
-function ipFromSocket(socket){
-  return ipFromHeaders(socket.handshake.headers) || socket.handshake.address || '';
-}
+function ipFromReq(req){ return ipFromHeaders(req.headers) || req.socket?.remoteAddress || ''; }
+function ipFromSocket(s){ return ipFromHeaders(s.handshake.headers) || s.handshake.address || ''; }
+
 function latinOrGuest(name){
-  return /^[A-Za-z0-9_.-]{3,20}$/.test(name||'') ? name : ('Guest'+Math.floor(1000+Math.random()*9000));
+  return /^[A-Za-z0-9_.-]{3,20}$/.test(name||'') ? name : 'Guest'+Math.floor(1000+Math.random()*9000);
 }
 function colorFor(name){
   const h = crypto.createHash('md5').update(name).digest('hex');
@@ -50,11 +49,26 @@ function colorFor(name){
   return ['#30c0ff','#22c55e','#f59e0b','#e879f9','#f43f5e','#38bdf8'][n%6];
 }
 function isBanned({ip,deviceId}){
-  return bans.some(b=> (b.targetType==='ip' && b.targetValue===ip) ||
-                       (b.targetType==='deviceId' && b.targetValue===deviceId));
+  return bans.some(b=> (b.targetType==='ip' && ip && b.targetValue===ip) ||
+                       (b.targetType==='deviceId' && deviceId && b.targetValue===deviceId));
 }
 function sys(text){ io.emit('system',{text}); }
 
+// ===== حفظ/تحميل bans.json
+function loadBans(){
+  try{
+    if(fs.existsSync(BANS_FILE)){
+      const raw = fs.readFileSync(BANS_FILE,'utf8');
+      bans = JSON.parse(raw||'[]');
+    }
+  }catch(e){ bans = []; }
+}
+function saveBans(){
+  try{ fs.writeFileSync(BANS_FILE, JSON.stringify(bans,null,2)); }catch(e){}
+}
+loadBans();
+
+// ===== Middleware
 function auth(req,res,next){
   const h=req.headers.authorization||''; const t=h.startsWith('Bearer ')?h.slice(7):'';
   if(!t) return res.status(401).json({error:'no token'});
@@ -66,7 +80,7 @@ function adminOnly(req,res,next){
 }
 
 // ===== تسجيل دخول
-app.post('/api/login', (req,res)=>{
+app.post('/api/login',(req,res)=>{
   const { username='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
   if(isBanned({ip,deviceId})) return res.status(403).json({error:'banned'});
@@ -75,8 +89,7 @@ app.post('/api/login', (req,res)=>{
   const token = jwt.sign({userId,username:uname,role:'user',deviceId}, JWT_SECRET, {expiresIn:'7d'});
   res.json({ token, userId, username:uname, role:'user' });
 });
-
-app.post('/api/login-pass', (req,res)=>{
+app.post('/api/login-pass',(req,res)=>{
   const { username='Admin', password='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
   if(password!==ADMIN_PASS) return res.status(401).json({error:'wrong password'});
@@ -98,7 +111,7 @@ app.post('/api/admin/unban', auth, adminOnly, (req,res)=>{
   for(let i=bans.length-1;i>=0;i--){
     if(bans[i].targetType===targetType && bans[i].targetValue===targetValue){ bans.splice(i,1); removed++; }
   }
-  if(removed) sys(`تم فك الحظر عن ${targetType==='ip'?'IP':'جهاز'}: ${targetValue}`);
+  if(removed){ saveBans(); sys('تم فك الحظر'); }
   res.json({ok:true,removed});
 });
 app.post('/api/admin/ban', auth, adminOnly, (req,res)=>{
@@ -106,9 +119,17 @@ app.post('/api/admin/ban', auth, adminOnly, (req,res)=>{
   if(!['ip','deviceId'].includes(targetType)||!targetValue) return res.status(400).json({error:'bad params'});
   if(!bans.find(b=> b.targetType===targetType && b.targetValue===targetValue)){
     bans.push({targetType,targetValue,reason,by:req.user.username,ts:now()});
-    sys(`تم الحظر (${targetType==='ip'?'IP':'جهاز'}): ${targetValue} بواسطة ${req.user.username}`);
+    saveBans();
   }
-  // اقطع الاتصال الفوري لو متصل
+  // تحديد اسم إن وُجد لكي لا نعرض IP
+  let name = '';
+  for(const [,u] of sockets){
+    if((targetType==='ip' && u.ip===targetValue) || (targetType==='deviceId' && u.deviceId===targetValue)){
+      name = u.username; break;
+    }
+  }
+  sys(`تم حظر ${name || 'مستخدم'}`);
+  // قطع اتصال من ينطبق عليه
   for(const [sid,u] of sockets.entries()){
     if( (targetType==='ip' && u.ip===targetValue) || (targetType==='deviceId' && u.deviceId===targetValue) ){
       const s=io.sockets.sockets.get(sid);
@@ -152,27 +173,22 @@ io.use((socket,next)=>{
 });
 function presence(){
   const arr=[];
-  for(const [,u] of sockets){ arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId,ip:u.ip}); }
+  for(const [,u] of sockets){ arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId}); }
   return arr;
 }
 io.on('connection',(socket)=>{
   const p=socket.user;
-  const u={
-    socketId:socket.id,
-    userId:p.userId, username:p.username, role:p.role,
-    deviceId:p.deviceId||'', ip:socket.ip, color:colorFor(p.username)
-  };
+  const u={ socketId:socket.id, userId:p.userId, username:p.username, role:p.role, deviceId:p.deviceId||'', ip:socket.ip, color:colorFor(p.username) };
   sockets.set(socket.id,u);
 
-  // إعلان انضمام (مع منع تكرار 5 دقائق لكل IP/جهاز)
+  // إعلان انضمام مع منع تكرار 5 دقائق
   const key = u.deviceId || ('ip:'+u.ip);
   const last = lastJoin.get(key) || 0;
-  if(now()-last > fiveMin){
+  if(now()-last > FIVE_MIN){
     sys(`${u.username} انضم إلى الغرفة`);
     lastJoin.set(key, now());
   }
 
-  // أرسل التاريخ والحضور
   socket.emit('history', messages.slice(-200));
   io.emit('presence', presence());
 
