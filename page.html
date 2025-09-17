@@ -5,66 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>غرفة العرب</title>
 <style>
-  :root{
-    --bg:#0a0b0e;--surface:#0f1218;--line:#222630;--fg:#e7eaf0;--muted:#a7afbd;
-    --accent:#30c0ff;--ok:#22c55e;--danger:#ef4444; --fs:16px;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100dvh}
-  body{margin:0;background:var(--bg);color:var(--fg);font:var(--fs)/1.45 system-ui,-apple-system,Segoe UI,Roboto}
+  :root{--bg:#0a0b0e;--surface:#0f1218;--line:#222630;--fg:#e7eaf0;--muted:#a7afbd;--accent:#30c0ff;--fs:16px}
+  *{box-sizing:border-box} html,body{height:100dvh} body{margin:0;background:var(--bg);color:var(--fg);font:var(--fs)/1.45 system-ui,-apple-system,Segoe UI,Roboto}
   .wrap{max-width:920px;margin:0 auto;height:100dvh;display:flex;flex-direction:column}
-
-  /* Header */
   .top{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
-  .title{font-weight:800}
-  .pill{background:#0d131c;border:1px solid var(--line);padding:2px 7px;border-radius:8px;color:#cdd5e1}
-  .sp{margin-inline-start:auto;display:flex;gap:8px}
-  .btn{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#0c1017;cursor:pointer}
-  .btn:active{transform:scale(.98)}
-
-  /* Messages */
-  .log{flex:1;overflow:auto;background:#0b0c10;padding:8px 10px;scroll-behavior:auto;-webkit-overflow-scrolling:touch}
-  .row{padding:8px 10px;margin:4px 0;border-radius:8px}
-  .head{direction:ltr;text-align:left;font-weight:700;display:flex;gap:6px;align-items:baseline}
-  .nick{color:#59caff;cursor:pointer}
-  .time{color:var(--muted);font-size:12px}
-  .txt{white-space:pre-wrap;word-break:break-word}
+  .title{font-weight:800}.pill{background:#0d131c;border:1px solid var(--line);padding:2px 7px;border-radius:8px;color:#cdd5e1}
+  .sp{margin-inline-start:auto;display:flex;gap:8px}.btn{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#0c1017;cursor:pointer}
+  .log{flex:1;overflow:auto;background:#0b0c10;padding:8px 10px}
+  .row{padding:8px 10px;margin:4px 0;border-radius:8px}.head{direction:ltr;text-align:left;font-weight:700;display:flex;gap:6px;align-items:baseline}
+  .nick{color:#59caff;cursor:pointer}.time{color:var(--muted);font-size:12px}.txt{white-space:pre-wrap;word-break:break-word}
   .sys{color:#9fb4c7;font-style:italic;white-space:pre-wrap;padding:6px 8px;margin:8px 0;border-left:3px solid #2a3a4a;background:#0b1118;border-radius:6px}
-
-  /* Composer */
   .dock{background:var(--surface);border-top:1px solid var(--line);padding:8px;position:sticky;bottom:0}
-  .dock .row1{display:flex;gap:8px;align-items:center}
-  .send{width:58px;height:46px;border-radius:12px;background:var(--accent);color:#001018;border:1px solid var(--line);font-weight:800;cursor:pointer}
+  .row1{display:flex;gap:8px;align-items:center}.send{width:58px;height:46px;border-radius:12px;background:var(--accent);color:#001018;border:1px solid var(--line);font-weight:800;cursor:pointer}
   #msg{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:#05070b;color:#fff;padding:0 14px;font-size:17px}
 
-  /* People drawer */
   .drawer{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:30}
   .panel{background:var(--surface);border-bottom:1px solid var(--line);position:absolute;left:0;right:0;top:0;max-width:920px;margin:0 auto}
   .ph{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
-  .list{max-height:55vh;overflow:auto}
-  .user{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
-  .uname{direction:ltr}
+  .list{max-height:55vh;overflow:auto}.user{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .dot{width:8px;height:8px;border-radius:50%;background:#22c55e}.uname{direction:ltr}
 
-  /* DM */
-  .dm{position:fixed;right:10px;bottom:92px;width:360px;max-width:92vw;display:none;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;z-index:40;box-shadow:0 12px 32px rgba(0,0,0,.55)}
-  .dmH{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)}
-  .dmB{max-height:46vh;overflow:auto;padding:10px}
-  .dmC{display:flex;gap:8px;padding:8px;border-top:1px solid var(--line)}
-  .dmC input{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#050608;color:#fff}
-  .dmC button{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018}
-  .dmMax{inset:0!important;width:auto!important;height:auto!important;max-width:none!important;border-radius:0!important}
+  .dm{position:fixed;right:10px;bottom:92px;width:360px;max-width:92vw;display:none;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;z-index:40}
+  .dmH{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line)} .dmB{max-height:46vh;overflow:auto;padding:10px}
+  .dmC{display:flex;gap:8px;padding:8px;border-top:1px solid var(--line)} .dmC input{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#050608;color:#fff}
+  .dmC button{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018}.dmMax{inset:0!important;width:auto!important;height:auto!important;max-width:none!important;border-radius:0!important}
 
-  /* Login (grid) */
   .login{position:fixed;inset:0;background:#0b0c0fe6;display:flex;align-items:center;justify-content:center;z-index:99}
   .card{width:min(92vw,560px);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
-  .card h3{margin:0 0 10px}
-  .rowi{display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center;margin:10px 0}
+  .card h3{margin:0 0 10px}.rowi{display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center;margin:10px 0}
   .card input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#050608;color:#fff}
-  .card .btn{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018;cursor:pointer}
-  .ghost{background:transparent;color:#d8e0ea;border-color:var(--line)}
+  .card .btn{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--accent);color:#001018;cursor:pointer}.ghost{background:transparent;color:#d8e0ea;border-color:var(--line)}
 
-  /* Admin sheet */
   .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;z-index:50}
   .sheetBox{max-width:880px;margin:8vh auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   .sheetHd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -72,50 +43,28 @@
   .rowAdmin{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .b{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#0b0e14;color:#d8e0ea;cursor:pointer}
   .b.warn{background:#221a05;color:#fcd174;border-color:#3a2b07}
-
-  /* Tools popover */
-  .tools{position:fixed;top:56px;right:calc(50% - 420px);
-         background:var(--surface);border:1px solid var(--line);border-radius:10px;display:none;z-index:35;padding:10px;min-width:220px}
-  .tools .ttl{font-weight:700;margin-bottom:8px}
-  .tools .rowt{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .tools{position:fixed;top:56px;right:calc(50% - 420px);background:var(--surface);border:1px solid var(--line);border-radius:10px;display:none;z-index:35;padding:10px;min-width:220px}
+  .tools .ttl{font-weight:700;margin-bottom:8px}.tools .rowt{display:flex;gap:8px;align-items:center;margin:6px 0}
   .tools .mini{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#0b0e14;color:#d8e0ea;cursor:pointer}
-
   @supports (-webkit-touch-callout:none){ input,textarea,select,button{font-size:16px!important} }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <span class="pill" id="online">0</span>
-    <span class="title">#العرب</span>
-    <div class="sp">
-      <div class="btn" id="iTools">🧰</div>
-      <div class="btn" id="iAdmin">🛡️</div>
-      <div class="btn" id="iInfo">ℹ️</div>
-      <div class="btn" id="iPeople">👥</div>
-    </div>
+    <span class="pill" id="online">0</span><span class="title">#العرب</span>
+    <div class="sp"><div class="btn" id="iTools">🧰</div><div class="btn" id="iAdmin">🛡️</div><div class="btn" id="iInfo">ℹ️</div><div class="btn" id="iPeople">👥</div></div>
   </div>
 
   <!-- Login -->
   <div class="login" id="login">
     <div class="card">
       <h3>تسجيل الدخول</h3>
-      <div class="rowi">
-        <input id="lu" placeholder="اسم إنجليزي (يحوَّل Guest إذا تُرك فارغ)">
-        <button class="btn" id="btnUser">دخول</button>
-      </div>
-      <div class="rowi">
-        <input id="au" placeholder="اسم المشرف/المالك">
-        <input id="ap" type="password" placeholder="كلمة سر المشرف (ADMIN)">
-      </div>
-      <div class="rowi">
-        <input id="op" type="password" placeholder="كلمة سر المالك (OWNER)">
-        <button class="btn" id="btnOwner">دخول المالك</button>
-      </div>
-      <div class="rowi" style="grid-template-columns:1fr 1fr">
-        <button class="btn ghost" id="btnSkip">متابعة كضيف</button>
-        <button class="btn" id="btnAdmin">دخول المشرف</button>
-      </div>
+      <div class="rowi"><input id="lu" placeholder="اسم إنجليزي (Guest إذا تُرك فارغ)"><button class="btn" id="btnUser">دخول</button></div>
+      <div class="rowi"><input id="au" placeholder="اسم المشرف/المالك"><input id="mp" type="password" placeholder="كلمة سر المشرف (login-mod)"></div>
+      <div class="rowi"><input id="ap" type="password" placeholder="كلمة سر الأدمن العام (اختياري)"><button class="btn" id="btnAdmin">دخول المشرف العام</button></div>
+      <div class="rowi"><input id="op" type="password" placeholder="كلمة سر المالك (OWNER)"><button class="btn" id="btnOwner">دخول المالك</button></div>
+      <div class="rowi" style="grid-template-columns:1fr 1fr"><button class="btn ghost" id="btnSkip">متابعة كضيف</button><span></span></div>
     </div>
   </div>
 
@@ -123,117 +72,60 @@
   <div id="messages" class="log"></div>
 
   <!-- Composer -->
-  <div class="dock">
-    <div class="row1">
-      <button class="send" id="send">➤</button>
-      <input id="msg" placeholder="اكتب رسالة…">
-    </div>
-  </div>
+  <div class="dock"><div class="row1"><button class="send" id="send">➤</button><input id="msg" placeholder="اكتب رسالة…"></div></div>
 </div>
 
 <!-- People -->
-<div class="drawer" id="drawer">
-  <div class="panel">
-    <div class="ph">
-      <strong id="pcount">0 متواجد</strong>
-      <button class="b" id="closeDrawer">إغلاق ✕</button>
-    </div>
-    <div class="list" id="plist"></div>
-  </div>
-</div>
+<div class="drawer" id="drawer"><div class="panel"><div class="ph"><strong id="pcount">0 متواجد</strong><button class="b" id="closeDrawer">إغلاق ✕</button></div><div class="list" id="plist"></div></div></div>
 
 <!-- DM -->
-<div class="dm" id="dm">
-  <div class="dmH">
-    <strong id="dmT">خاص</strong>
-    <div>
-      <button class="b" id="dmMin">—</button>
-      <button class="b" id="dmFull">⤢</button>
-      <button class="b" id="dmX">✕</button>
-    </div>
-  </div>
-  <div class="dmB" id="dmB"></div>
-  <div class="dmC">
-    <input id="dmI" placeholder="اكتب رسالة خاصة…">
-    <button id="dmS">إرسال</button>
-  </div>
-</div>
+<div class="dm" id="dm"><div class="dmH"><strong id="dmT">خاص</strong><div><button class="b" id="dmMin">—</button><button class="b" id="dmFull">⤢</button><button class="b" id="dmX">✕</button></div></div><div class="dmB" id="dmB"></div><div class="dmC"><input id="dmI" placeholder="اكتب رسالة خاصة…"><button id="dmS">إرسال</button></div></div>
 
 <!-- Admin sheet -->
-<div class="sheet" id="sheet">
-  <div class="sheetBox">
-    <div class="sheetHd">
-      <strong>لوحة الإدارة</strong>
-      <button class="b" id="sheetX">إغلاق</button>
-    </div>
-    <div class="sheetBd" id="sheetBd">
-      <div class="rowAdmin"><em>يتم تحميل البيانات…</em></div>
-    </div>
-  </div>
-</div>
+<div class="sheet" id="sheet"><div class="sheetBox"><div class="sheetHd"><strong>لوحة الإدارة</strong><button class="b" id="sheetX">إغلاق</button></div><div class="sheetBd" id="sheetBd"><div class="rowAdmin"><em>يتم تحميل البيانات…</em></div></div></div></div>
 
-<!-- Tools popover -->
-<div class="tools" id="tools">
-  <div class="ttl">أدوات</div>
-  <div class="rowt">
-    <button class="mini" id="tOpenDM">فتح الخاص</button>
-    <span style="color:var(--muted)">اختر مستخدم من المتواجدين أو اضغط اسمه.</span>
-  </div>
-  <div class="rowt">
-    <span style="min-width:88px">حجم الخط:</span>
-    <button class="mini" id="fsMinus">−</button>
-    <button class="mini" id="fsPlus">+</button>
-  </div>
-</div>
+<!-- Tools -->
+<div class="tools" id="tools"><div class="ttl">أدوات</div><div class="rowt"><button class="mini" id="tOpenDM">فتح الخاص</button><span style="color:var(--muted)">اختر مستخدم من المتواجدين أو اضغط اسمه.</span></div><div class="rowt"><span style="min-width:88px">حجم الخط:</span><button class="mini" id="fsMinus">−</button><button class="mini" id="fsPlus">+</button></div></div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const state={ base:location.origin, token:null, me:null, socket:null, role:'user', color:'#59caff', dmWith:null };
+const state={ base:location.origin, token:null, me:null, socket:null, role:'user', dmWith:null };
 const $=s=>document.querySelector(s), el=(t,c)=>{const x=document.createElement(t); if(c)x.className=c; return x;};
 const deviceId=()=>{ let id=localStorage.getItem('deviceId'); if(!id){ id=(crypto.randomUUID&&crypto.randomUUID())||Math.random().toString(36).slice(2); localStorage.setItem('deviceId',id);} return id; };
 async function post(p,b,a=true){const h={'Content-Type':'application/json'}; if(a&&state.token)h.Authorization='Bearer '+state.token; const r=await fetch(state.base+p,{method:'POST',headers:h,body:JSON.stringify(b||{})}); const d=await r.json(); if(d.error) throw new Error(d.error); return d;}
 async function get(p,a=true){const h={}; if(a&&state.token)h.Authorization='Bearer '+state.token; const r=await fetch(state.base+p,{headers:h}); const d=await r.json(); if(d.error) throw new Error(d.error); return d;}
 
-// ===== font size tools
+/* حجم الخط */
 function applyFs(){ const fs=+localStorage.getItem('chat.fs')||16; document.documentElement.style.setProperty('--fs',fs+'px'); }
-applyFs();
-$('#fsPlus').onclick=()=>{ const v=Math.min(24,(+localStorage.getItem('chat.fs')||16)+1); localStorage.setItem('chat.fs',v); applyFs(); };
+applyFs(); $('#fsPlus').onclick=()=>{ const v=Math.min(24,(+localStorage.getItem('chat.fs')||16)+1); localStorage.setItem('chat.fs',v); applyFs(); };
 $('#fsMinus').onclick=()=>{ const v=Math.max(12,(+localStorage.getItem('chat.fs')||16)-1); localStorage.setItem('chat.fs',v); applyFs(); };
 
-// ===== login
+/* تسجيل الدخول */
 async function doLogin(kind){
   try{
     let data;
     if(kind==='owner'){
-      data = await post('/api/login-owner',{
-        username: ($('#au').value||'').trim() || 'Owner',
-        password: $('#op').value||'',
-        deviceId: deviceId()
-      }, false);
-    } else if(kind==='admin'){
-      data=await post('/api/login-pass',{
-        username: ($('#au').value||'').trim() || 'Admin',
-        password: $('#ap').value||'',
-        deviceId: deviceId()
-      }, false);
-    } else {
+      data=await post('/api/login-owner',{username:($('#au').value||'').trim()||'Owner',password:$('#op').value||'',deviceId:deviceId()},false);
+    }else if(kind==='admin'){
+      data=await post('/api/login-pass',{username:($('#au').value||'').trim()||'Admin',password:$('#ap').value||'',deviceId:deviceId()},false);
+    }else if(kind==='mod'){
+      data=await post('/api/login-mod',{username:($('#au').value||'').trim()||'Mod',password:$('#mp').value||'',deviceId:deviceId()},false);
+    }else{
       let name=($('#lu').value||'').trim(); if(!/^[A-Za-z0-9_.-]{3,20}$/.test(name||'')) name='';
       data=await post('/api/login',{username:name,deviceId:deviceId()},false);
     }
     state.token=data.token; state.me={userId:data.userId,username:data.username}; state.role=data.role;
-    $('#login').style.display='none';
-
-    pushWelcome();
-    connectSocket();
-    setTimeout(()=>{ layout(); stickToBottom(true); },0);
+    $('#login').style.display='none'; pushWelcome(); connectSocket(); setTimeout(()=>{ layout(); stickToBottom(true); },0);
   }catch(e){ alert(e.message||'فشل تسجيل الدخول'); }
 }
-document.getElementById('btnOwner').onclick=()=>doLogin('owner');
-document.getElementById('btnAdmin').onclick=()=>doLogin('admin');
-document.getElementById('btnUser').onclick =()=>doLogin('user');
-document.getElementById('btnSkip').onclick =()=>doLogin('user');
+$('#btnOwner').onclick=()=>doLogin('owner');
+$('#btnAdmin').onclick=()=>doLogin('admin');
+$('#btnUser').onclick =()=>doLogin('user');
+$('#btnSkip').onclick =()=>doLogin('user');
+/* لو عندك كلمة سر للمشرف بالاسم → استعمل هذا الزر من نفسك */
+document.getElementById('mp').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin('mod'); });
 
-// ===== socket
+/* Socket */
 function connectSocket(){
   state.socket=io(state.base,{auth:{token:state.token}});
   state.socket.on('history',arr=>{ $('#messages').innerHTML=''; pushWelcome(); arr.forEach(pushLine); forceStick(); });
@@ -242,17 +134,15 @@ function connectSocket(){
   state.socket.on('system',m=> pushSys(m.text||''));  
   state.socket.on('admin:clear',()=> $('#messages').innerHTML='');
   state.socket.on('banned',info=>{ alert((info&&info.reason)||'تم الحظر'); state.socket.disconnect(); });
-
   state.socket.on('dm:new', rec=>{
     if(state.dmWith && (rec.fromId===state.dmWith.userId || rec.toId===state.dmWith.userId)){
-      const line=document.createElement('div');
-      line.textContent=(rec.fromId===state.dmWith.userId? state.dmWith.username : 'أنا')+': '+rec.text;
+      const line=document.createElement('div'); line.textContent=(rec.fromId===state.dmWith.userId? state.dmWith.username : 'أنا')+': '+rec.text;
       $('#dmB').appendChild(line); $('#dmB').scrollTop=$('#dmB').scrollHeight;
     }
   });
 }
 
-// ===== messages + sticky
+/* الرسائل + التثبيت */
 const M=()=>document.getElementById('messages');
 function isNearBottom(el,tol=6){return(el.scrollHeight-el.scrollTop-el.clientHeight)<=tol}
 let _stick=true;
@@ -286,15 +176,12 @@ function pushLine(m){
 }
 M().addEventListener('scroll',()=>{ _stick=isNearBottom(M()); },{passive:true});
 
-// ===== presence
+/* المتواجدون */
 function renderPresence(list){
-  $('#online').textContent=list.length;
-  $('#pcount').textContent=`${list.length} متواجد`;
+  $('#online').textContent=list.length; $('#pcount').textContent=`${list.length} متواجد`;
   const box=$('#plist'); box.innerHTML='';
-  list.forEach(u=>{
-    const li=el('div','user');
-    const dot=el('span','dot');
-    const name=el('span','uname'); name.textContent=u.username; name.style.color=u.color||'#9ed0ff'; name.style.direction='ltr';
+  list.forEach(u=>{ const li=el('div','user'), dot=el('span','dot'), name=el('span','uname');
+    name.textContent=u.username; name.style.color=u.color||'#9ed0ff'; name.style.direction='ltr';
     li.append(dot,name); li.onclick=()=>userMenu(u); box.appendChild(li);
   });
 }
@@ -302,25 +189,27 @@ $('#iPeople').onclick=()=> $('#drawer').style.display='block';
 $('#closeDrawer').onclick=()=> $('#drawer').style.display='none';
 $('#drawer').onclick=(e)=>{ if(e.target.id==='drawer') $('#drawer').style.display='none'; };
 
-// ===== user menu
+/* قائمة المستخدم */
 function openUserMenuByName(username){ const u=userIndex.get(username)||{username}; userMenu(u); }
+async function fetchInfo(u){
+  const q = u.userId ? ('userId='+encodeURIComponent(u.userId)) : ('username='+encodeURIComponent(u.username));
+  try{ return await get('/api/admin/user-info?'+q,true); }catch{ return null; }
+}
 function userMenu(u){
   const ov=document.createElement('div'); ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:45';
   const box=document.createElement('div'); box.style.cssText='background:#0f1218;border:1px solid var(--line);padding:12px;border-radius:10px;min-width:300px';
   box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-    <strong style="direction:ltr;color:${u.color||'#9ed0ff'}">${u.username}</strong>
-    <button class="b" id="x">✕</button>
-  </div>`;
+    <strong style="direction:ltr">${u.username}</strong><button class="b" id="x">✕</button></div>`;
   const row=document.createElement('div'); row.style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px';
   const reply=btn('رد على رسالة',()=>{ const inp=$('#msg'); inp.value=(inp.value?inp.value+'\n':'')+`@${u.username}: `; inp.focus(); ov.remove();});
   const openDM=btn('فتح خاص',()=>{ ov.remove(); showDM(u.userId||u.username,u.username); });
   row.append(reply,openDM);
 
   if(state.role==='owner'||state.role==='admin'||state.role==='mod'){
-    const info=btn('كشف معلومات',async()=>{ const key=u.userId?('userId='+encodeURIComponent(u.userId)):('username='+encodeURIComponent(u.username)); const d=await get('/api/admin/user-info?'+key,true); alert(`userId:${d.userId}\nusername:${d.username}\nrole:${d.role}\ndevice:${d.deviceId}\nIP:${d.ip}`); });
-    const kick=btn('طرد',async()=>{ await post('/api/admin/kick',{deviceId:u.deviceId},true); });
-    const banDev=btn('حظر جهاز',async()=>{ await post('/api/admin/ban',{targetType:'deviceId',targetValue:u.deviceId},true); });
-    const banIp=btn('حظر IP',async()=>{ await post('/api/admin/ban',{targetType:'ip',targetValue:u.ip},true); });
+    const info=btn('كشف معلومات',async()=>{ const d=await fetchInfo(u); if(!d) return alert('غير متصل'); alert(`userId:${d.userId}\nusername:${d.username}\nrole:${d.role}\nالجهاز:${d.deviceId}\nIP:${d.ip}`); });
+    const kick=btn('طرد',async()=>{ const d=await fetchInfo(u); if(!d) return; await post('/api/admin/kick',{deviceId:d.deviceId},true); });
+    const banDev=btn('حظر جهاز',async()=>{ const d=await fetchInfo(u); if(!d) return; await post('/api/admin/ban',{targetType:'deviceId',targetValue:d.deviceId},true); });
+    const banIp=btn('حظر IP',async()=>{ const d=await fetchInfo(u); if(!d) return; await post('/api/admin/ban',{targetType:'ip',targetValue:d.ip},true); });
     row.append(info,kick,banDev,banIp);
   }
   box.appendChild(row); ov.appendChild(box); document.body.appendChild(ov);
@@ -328,62 +217,48 @@ function userMenu(u){
   function btn(t,fn){ const b=document.createElement('button'); b.className='b'; b.textContent=t; b.onclick=fn; return b; }
 }
 
-// ===== DM
+/* DM */
 function showDM(userId,username){ state.dmWith={userId,username}; $('#dmT').textContent='خاص: '+username; $('#dmB').innerHTML=''; $('#dm').style.display='flex'; $('#dmI').focus(); }
-$('#dmX').onclick=()=> $('#dm').style.display='none';
-$('#dmMin').onclick=()=> $('#dm').style.display='none';
+$('#dmX').onclick=()=> $('#dm').style.display='none'; $('#dmMin').onclick=()=> $('#dm').style.display='none';
 let dmFull=false; $('#dmFull').onclick=()=>{ dmFull=!dmFull; $('#dm').classList.toggle('dmMax',dmFull); };
 $('#dmS').onclick=sendDM; $('#dmI').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendDM(); }});
 function sendDM(){ const t=$('#dmI').value.trim(); if(!t||!state.dmWith) return; state.socket.emit('dm:send',{toId:state.dmWith.userId,text:t}); $('#dmI').value=''; $('#dmI').focus(); }
 
-// ===== إرسال
+/* إرسال */
 $('#send').onclick=send; $('#msg').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); }});
 function send(){ const t=$('#msg').value.trim(); if(!t) return; state.socket.emit('chat:msg',{text:t}); $('#msg').value=''; $('#msg').focus(); stickToBottom(true); }
 
-// ===== لوحة الإدارة (بها إدارة المشرفين للمالك)
+/* لوحة الإدارة */
 $('#iAdmin').onclick=async()=>{
   if(state.role!=='owner' && state.role!=='admin' && state.role!=='mod'){ alert('هذه القائمة للمشرف فقط'); return; }
   $('#sheet').style.display='block';
   const bd=$('#sheetBd'); bd.innerHTML='';
-  // إدارة المشرفين للمالك
+  // إدارة المشرفين (للـمالك فقط)
   if(state.role==='owner'){
-    const tools = document.createElement('div');
-    tools.className='rowAdmin';
-    tools.innerHTML = `
-      <strong>إدارة المشرفين</strong>
-      <input id="mUser" placeholder="اسم المشرف" style="flex:1;min-width:180px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#050608;color:#fff">
+    const tools=document.createElement('div'); tools.className='rowAdmin';
+    tools.innerHTML=`<strong>إدارة المشرفين</strong>
+      <input id="mUser" placeholder="اسم المشرف" style="flex:1;min-width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#050608;color:#fff">
       <select id="mRole" class="b"><option value="mod">mod</option><option value="admin">admin</option></select>
+      <input id="mPass" placeholder="كلمة سر (اختياري)" style="min-width:160px;padding:8px;border:1px solid var(--line);border-radius:8px;background:#050608;color:#fff">
       <button class="b" id="mSave">حفظ/تحديث</button>
-      <button class="b warn" id="mDel">حذف</button>
-    `;
+      <button class="b warn" id="mDel">حذف</button>`;
     bd.appendChild(tools);
 
-    async function refreshMods(){
-      const list = await get('/api/super/mods',true);
-      const box = document.createElement('div'); box.style='width:100%';
-      box.innerHTML = list.map(m=>`<div class="rowAdmin"><span class="b">${m.role}</span><strong style="direction:ltr">${m.username}</strong></div>`).join('');
-      bd.appendChild(box);
-    }
-    refreshMods();
+    const listBox=document.createElement('div'); bd.appendChild(listBox);
+    async function refresh(){ const list=await get('/api/owner/mods',true); listBox.innerHTML=list.map(m=>`<div class="rowAdmin"><span class="b">${m.role}</span><strong style="direction:ltr">${m.username}</strong>${m.passHash?'<span class="b" style="opacity:.6">✅ كلمة سر</span>':''}</div>`).join('')||'<div class="rowAdmin"><em>لا يوجد مشرفون.</em></div>'; }
+    await refresh();
 
-    tools.querySelector('#mSave').onclick = async()=>{
-      const u=document.getElementById('mUser').value.trim(); const r=document.getElementById('mRole').value;
-      if(!u) return alert('أدخل الاسم');
-      await post('/api/super/mods',{username:u,role:r},true);
-      alert('تم الحفظ'); bd.innerHTML=''; $('#iAdmin').click(); // إعادة فتح لتحديث
+    tools.querySelector('#mSave').onclick=async()=>{
+      const u=$('#mUser').value.trim(), r=$('#mRole').value, p=$('#mPass').value.trim(); if(!u) return alert('أدخل الاسم');
+      await post('/api/owner/mods',{username:u,role:r,password:p||undefined},true); $('#mPass').value=''; await refresh(); alert('تم الحفظ');
     };
-    tools.querySelector('#mDel').onclick = async()=>{
-      const u=document.getElementById('mUser').value.trim(); if(!u) return;
-      await fetch('/api/super/mods/'+encodeURIComponent(u),{method:'DELETE',headers:{Authorization:'Bearer '+state.token}});
-      alert('تم الحذف'); bd.innerHTML=''; $('#iAdmin').click();
-    };
+    tools.querySelector('#mDel').onclick=async()=>{ const u=$('#mUser').value.trim(); if(!u) return; await fetch('/api/owner/mods/'+encodeURIComponent(u),{method:'DELETE',headers:{Authorization:'Bearer '+state.token}}); await refresh(); alert('تم الحذف'); };
   }
 
   // قائمة الحظر
   const holder=document.createElement('div'); holder.className='rowAdmin'; holder.innerHTML='<em>يتم تحميل قائمة الحظر…</em>'; bd.appendChild(holder);
   try{
-    const bans=await get('/api/admin/bans',true);
-    holder.remove();
+    const bans=await get('/api/admin/bans',true); holder.remove();
     if(!bans.length){ bd.innerHTML+='<div class="rowAdmin"><em>لا توجد عناصر في الحظر.</em></div>'; return; }
     bans.forEach(b=>{
       const r=document.createElement('div'); r.className='rowAdmin';
@@ -395,20 +270,17 @@ $('#iAdmin').onclick=async()=>{
       un.onclick=async()=>{ await post('/api/admin/unban',{targetType:b.targetType,targetValue:b.targetValue},true); r.remove(); };
       r.appendChild(un); bd.appendChild(r);
     });
-  }catch{ /* تجاهل */ }
+  }catch{}
 };
 $('#sheetX').onclick=()=> $('#sheet').style.display='none';
 
-// ===== أدوات (DM + تكبير/تصغير)
-const tools=$('#tools');
-$('#iTools').onclick=()=>{ tools.style.display = (tools.style.display==='block'?'none':'block'); };
+/* أدوات */
+const tools=$('#tools'); $('#iTools').onclick=()=>{ tools.style.display = (tools.style.display==='block'?'none':'block'); };
 document.addEventListener('click',e=>{ if(!tools.contains(e.target) && e.target.id!=='iTools') tools.style.display='none'; });
 $('#tOpenDM').onclick=()=>{ if(!state.dmWith){ alert('اختر مستخدم من المتواجدين أو اضغط اسمه لبدء الخاص.'); }else{ $('#dm').style.display='flex'; $('#dmI').focus(); } };
-
-// ===== Info
 $('#iInfo').onclick=()=> alert('غرفة العرب — نسخة المالك/المشرفين');
 
-// ===== تخطيط وكيبورد iOS
+/* تخطيط وكيبورد iOS */
 function layout(){ const vv=window.visualViewport, vvh=vv?vv.height:window.innerHeight; const topH=document.querySelector('.top').getBoundingClientRect().height; const dockH=document.querySelector('.dock').getBoundingClientRect().height; const h=Math.max(160,Math.round(vvh-topH-dockH)); M().style.height=h+'px'; }
 let kbLoop=null; function startKBLoop(){ if(kbLoop) return; const step=()=>{ layout(); stickToBottom(); kbLoop=requestAnimationFrame(step); }; kbLoop=requestAnimationFrame(step); }
 function stopKBLoop(){ if(kbLoop){ cancelAnimationFrame(kbLoop); kbLoop=null; } }
