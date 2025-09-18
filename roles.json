@@ -1,5 +1,54 @@
-{
+
   "mods": [
-    { "username": "Rido", "role": "admin", "password": "12345" }
+    {
+      "username": "DaN1",
+      "role": "mod",
+      "passHash": "6e77631ffec2cedadba7adb8933d3a8f79e720e3218e5424ae6dc8634be89dad"
+    },
+    {
+      "username": "Dan2",
+      "role": "mod",
+      "passHash": "9af9f46560e1f608c35d2873f11196546bc0e3b02d19100a48780e6ac230eb88"
+    },
+    {
+      "username": "DANA3",
+      "role": "mod",
+      "passHash": "a08ed1a64118219eaf69606c162158efff76680ebfb22be6ecb92856098ab6f8"
+    },
+    {
+      "username": "DANA4",
+      "role": "mod",
+      "passHash": "b7750790c33bbc6ded892134120ae2684770e4f524d39f13b6eca4eb04aa5489"
+    },
+    {
+      "username": "Dan5",
+      "role": "mod",
+      "passHash": "3c7f0019e14c9803f3c9aba46b06462b56b79fb56ca6343e75b92b4baa1cd472"
+    },
+    {
+      "username": "Dan6",
+      "role": "mod",
+      "passHash": "7f956e271d2af7d7b51e27d494c958d921ffe26dc2b20bcedc1cff4bd1f2af9d"
+    },
+    {
+      "username": "Mod7",
+      "role": "mod",
+      "passHash": "09c5425076ada4f628ff90ade8667c30213dfd4a18bb33c9ff35ed42eee9e9fc"
+    },
+    {
+      "username": "Mod8",
+      "role": "mod",
+      "passHash": "9bca593c8a27e8f0254b636c839d522133f07c6a2ae5d4b24a2911818ad7ddd3"
+    },
+    {
+      "username": "Mod9",
+      "role": "mod",
+      "passHash": "c169371def5306230787e07e20ae92b6794a3242351d1f76db0a61fad327c1c9"
+    },
+    {
+      "username": "Mod10",
+      "role": "mod",
+      "passHash": "7bf173d9345948707da31a6d4dcd22d9b0b55a176ef8486908e0af2f33ca7dda"
+    }
   ]
 }
