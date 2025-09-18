@@ -1,4 +1,4 @@
-// server.js — نسخـة كاملة: login-smart + normalizePwd + owner/mods + bans + DM log للمالك فقط
+// server.js — Chat Pro (بدون تعدد غرف) + أصدقاء/إشعارات/Profiles/Audit/Slash/PIN/Stats/Filter/DM log
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -20,18 +20,24 @@ const PORT        = process.env.PORT || 3000;
 const JWT_SECRET  = process.env.JWT_SECRET  || 'super-secret';
 const ADMIN_PASS  = process.env.ADMIN_PASS  || '1200@';
 const OWNER_PASS  = process.env.OWNER_PASS  || 'super@1200';
+const OWNER_2FA_CODE = process.env.OWNER_2FA_CODE || ''; // اختياري: لو موجود لازم المالك يكتب "pass code" في نفس خانة الباس
 
 /* ملفات التخزين */
 const BANS_FILE   = path.join(__dirname,'bans.json');
 const ROLES_FILE  = path.join(__dirname,'roles.json');
 const DM_LOG_FILE = path.join(__dirname,'dm_log.json');
+const AUDIT_FILE  = path.join(__dirname,'audit.json');
 
 /* مخازن */
 const messages = [];
+let pinned = null; // {text, ts, by}
 const sockets  = new Map(); // socket.id -> user
 let bans    = [];
 let roles   = { mods:[] };
 let dmLog   = [];
+let audit   = []; // {ts,type,username,ip,deviceId,extra}
+let stats   = { totalMsgs:0, dmToday:0 };
+
 const lastJoin = new Map();
 
 const now = ()=> Date.now();
@@ -55,21 +61,35 @@ function loadAll(){
   bans  = loadJson(BANS_FILE,[]);
   roles = loadJson(ROLES_FILE,{mods:[]});
   dmLog = loadJson(DM_LOG_FILE,[]);
+  audit = loadJson(AUDIT_FILE,[]);
 }
 loadAll();
 
 /* صلاحيات */
 const DEFAULT_PERMS = {
-  admin:{kick:true,banDevice:true,banIp:true,unban:true,clear:true},
-  mod:{kick:true,banDevice:true,banIp:false,unban:false,clear:false}
+  admin:{kick:true,banDevice:true,banIp:true,unban:true,clear:true,pin:true},
+  mod:{kick:true,banDevice:true,banIp:false,unban:false,clear:false,pin:true}
 };
 function permsFor(role){
-  if(role==='owner') return {kick:true,banDevice:true,banIp:true,unban:true,clear:true};
+  if(role==='owner') return {kick:true,banDevice:true,banIp:true,unban:true,clear:true,pin:true};
   if(role==='admin') return DEFAULT_PERMS.admin;
   if(role==='mod')   return DEFAULT_PERMS.mod;
   return {};
 }
 function findMod(name){ return (roles.mods||[]).find(m => (m.username||'').toLowerCase()===(name||'').toLowerCase()); }
+
+/* فلترة كلمات ممنوعة (يعدلها المالك لاحقًا) */
+let badWords = ['كلمة_ممنوعة1','كلمة_ممنوعة2']; // عدلها من لوحة المالك
+function filterText(s){
+  if(!s) return s;
+  let out = s;
+  for(const w of badWords){
+    if(!w) continue;
+    const re = new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    out = out.replace(re, '****');
+  }
+  return out;
+}
 
 /* تطبيع كلمة المرور (أرقام عربية/فارسي + NFKC) */
 function normalizePwd(s=''){
@@ -99,20 +119,40 @@ function allow(permsKey){
   };
 }
 
-/* ===== Login Smart (حقلين فقط) */
+/* ===== Audit tools */
+function addAudit(type, info={}){
+  const e = { ts: now(), type, ...info };
+  audit.push(e);
+  if(audit.length>5000) audit = audit.slice(-3000);
+  saveJson(AUDIT_FILE, audit);
+}
+
+/* ===== Login Smart (حقلين فقط) + 2FA للمالك اختياري */
 app.post('/api/login-smart',(req,res)=>{
-  const { username='', password='', deviceId='' } = req.body||{};
+  let { username='', password='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
-  if(isBanned({ip,deviceId})) return res.status(403).json({error:'banned'});
+  if(isBanned({ip,deviceId})){ addAudit('login_blocked',{username,ip,deviceId}); return res.status(403).json({error:'banned'}); }
 
   const uname = latinOrGuest(username);
   const pwdNorm = normalizePwd(password);
 
+  // 2FA للمالك (اختياري): لو OWNER_2FA_CODE محدد، تكون صيغة الإدخال "pass code"
+  let passOnly=pwdNorm, code='';
+  if(OWNER_2FA_CODE){
+    const sp = pwdNorm.split(' ');
+    if(sp.length>=2){ code = sp.pop(); passOnly = sp.join(' '); }
+  }
+
   // Owner
-  if(pwdNorm && pwdNorm===OWNER_PASS){
+  if(passOnly && passOnly===OWNER_PASS){
+    if(OWNER_2FA_CODE && code!==OWNER_2FA_CODE){
+      addAudit('login_failed_2fa',{username:uname,ip,deviceId});
+      return res.status(401).json({error:'wrong 2fa'});
+    }
     const userId = crypto.randomUUID();
     const role = 'owner';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+    addAudit('login_owner',{username:uname,ip,deviceId});
     return res.json({ token, userId, username:uname, role });
   }
   // Admin (عام)
@@ -120,15 +160,17 @@ app.post('/api/login-smart',(req,res)=>{
     const userId = crypto.randomUUID();
     const role = 'admin';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+    addAudit('login_admin',{username:uname,ip,deviceId});
     return res.json({ token, userId, username:uname, role });
   }
   // Mod من roles.json مع passHash
   const mod = findMod(uname);
   if(pwdNorm && mod && mod.passHash){
-    if(hash(pwdNorm)!==mod.passHash) return res.status(401).json({error:'wrong password'});
+    if(hash(pwdNorm)!==mod.passHash){ addAudit('login_wrong',{username:uname,ip,deviceId}); return res.status(401).json({error:'wrong password'}); }
     const userId = crypto.randomUUID();
     const role = mod.role||'mod';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod.perms||permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+    addAudit('login_mod',{username:uname,ip,deviceId});
     return res.json({ token, userId, username:uname, role });
   }
   // Mod بدون passHash → دخول بدون كلمة سر
@@ -136,6 +178,7 @@ app.post('/api/login-smart',(req,res)=>{
     const userId = crypto.randomUUID();
     const role = mod.role||'mod';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod.perms||permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
+    addAudit('login_mod_nopass',{username:uname,ip,deviceId});
     return res.json({ token, userId, username:uname, role });
   }
   // User عادي بدون كلمة
@@ -143,9 +186,11 @@ app.post('/api/login-smart',(req,res)=>{
     const userId = crypto.randomUUID();
     const role = 'user';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:{}}, JWT_SECRET, {expiresIn:'7d'});
+    addAudit('login_user',{username:uname,ip,deviceId});
     return res.json({ token, userId, username:uname, role });
   }
 
+  addAudit('login_wrong',{username:uname,ip,deviceId});
   return res.status(401).json({error:'wrong password'});
 });
 
@@ -167,7 +212,7 @@ app.post('/api/admin/unban', auth, allow('unban'), (req,res)=>{
   for(let i=bans.length-1;i>=0;i--){
     if(bans[i].targetType===targetType && bans[i].targetValue===targetValue){ bans.splice(i,1); removed++; }
   }
-  if(removed){ saveJson(BANS_FILE,bans); sys('تم فك الحظر'); }
+  if(removed){ saveJson(BANS_FILE,bans); sys('تم فك الحظر'); addAudit('unban',{by:req.user.username,targetType,targetValue}); }
   res.json({ok:true,removed});
 });
 app.post('/api/admin/ban', auth, (req,res,next)=> allow(req.body?.targetType==='ip'?'banIp':'banDevice')(req,res,next), (req,res)=>{
@@ -177,6 +222,7 @@ app.post('/api/admin/ban', auth, (req,res,next)=> allow(req.body?.targetType==='
     bans.push({targetType,targetValue,reason,by:req.user.username,ts:now()});
     saveJson(BANS_FILE,bans);
   }
+  addAudit('ban',{by:req.user.username,targetType,targetValue});
   let name = '';
   for(const [,u] of sockets){
     if((targetType==='ip' && u.ip===targetValue) || (targetType==='deviceId' && u.deviceId===targetValue)){ name=u.username; break; }
@@ -196,7 +242,7 @@ app.post('/api/admin/kick', auth, allow('kick'), (req,res)=>{
   for(const [sid,u] of sockets.entries()){
     if(u.deviceId===deviceId){ const s=io.sockets.sockets.get(sid); if(s){ done=true; name=u.username; s.emit('banned',{reason:'kicked'}); s.disconnect(true);} }
   }
-  if(done) sys(`تم طرد ${name||'مستخدم'}`);
+  if(done){ sys(`تم طرد ${name||'مستخدم'}`); addAudit('kick',{by:req.user.username,deviceId}); }
   res.json({ok:done});
 });
 
@@ -205,7 +251,7 @@ app.get('/api/admin/user-info', auth, (req,res)=>{
   const byId=req.query.userId, byName=(req.query.username||'').toLowerCase();
   for(const [,u] of sockets.entries()){
     if( (byId && u.userId===byId) || (byName && (u.username||'').toLowerCase()===byName) ){
-      return res.json({userId:u.userId,username:u.username,role:u.role,ip:u.ip,deviceId:u.deviceId,connectedAt:u.connectedAt});
+      return res.json({userId:u.userId,username:u.username,role:u.role,ip:u.ip,deviceId:u.deviceId,connectedAt:u.connectedAt,status:u.status||'',avatar:u.avatar||''});
     }
   }
   res.status(404).json({error:'not found'});
@@ -220,23 +266,56 @@ app.post('/api/owner/mods', auth, needRole('owner'), (req,res)=>{
   let mod = findMod(username);
   if(!mod){ mod={username,role,perms:permsFor(role)}; roles.mods.push(mod); }
   else { mod.role=role; mod.perms=permsFor(role); }
-  if(password){
-    const pnorm = normalizePwd(password);
-    mod.passHash = hash(pnorm);
-  }
+  if(password){ const pnorm = normalizePwd(password); mod.passHash = hash(pnorm); }
   saveJson(ROLES_FILE,roles);
+  addAudit('mod_save',{by:req.user.username,username,role});
   res.json({ok:true,mod});
 });
 app.delete('/api/owner/mods/:username', auth, needRole('owner'), (req,res)=>{
   const uname=req.params.username.toLowerCase();
   roles.mods=(roles.mods||[]).filter(m=>(m.username||'').toLowerCase()!==uname);
   saveJson(ROLES_FILE,roles);
+  addAudit('mod_del',{by:req.user.username,username:uname});
   res.json({ok:true});
+});
+
+/* ===== Profiles (status, avatar) */
+app.post('/api/profile', auth, (req,res)=>{
+  const {status='', avatar=''} = req.body||{};
+  // احفظ داخل جلسة المستخدم الحيّة فقط (Volatile)
+  for(const [,u] of sockets){
+    if(u.userId===req.user.userId){
+      u.status = String(status).slice(0,120);
+      u.avatar = String(avatar).slice(0,512);
+      break;
+    }
+  }
+  io.emit('presence', presence());
+  res.json({ok:true});
+});
+
+/* ===== فلتر الكلمات — المالك فقط */
+app.get('/api/owner/filters', auth, needRole('owner'), (req,res)=> res.json(badWords));
+app.post('/api/owner/filters', auth, needRole('owner'), (req,res)=>{
+  const arr = Array.isArray(req.body) ? req.body : [];
+  badWords = arr.map(s=> String(s||'').trim()).filter(Boolean).slice(0,200);
+  res.json({ok:true,count:badWords.length});
+});
+
+/* ===== Audit API — المالك */
+app.get('/api/owner/audit', auth, needRole('owner'), (req,res)=>{
+  const n = Math.min(Number(req.query.limit||300), 2000);
+  const start = Math.max(audit.length - n, 0);
+  res.json(audit.slice(start));
+});
+app.post('/api/owner/audit/clear', auth, needRole('owner'), (req,res)=>{
+  audit = []; saveJson(AUDIT_FILE, audit); res.json({ok:true});
 });
 
 /* ===== سجل الخاص (DM) — للمالك فقط */
 function appendDM(entry){
   dmLog.push(entry);
+  stats.dmToday++;
   if(dmLog.length>5000) dmLog = dmLog.slice(-3000); // احتفاظ بآخر 3000
   saveJson(DM_LOG_FILE, dmLog);
 }
@@ -246,9 +325,7 @@ app.get('/api/owner/dm-log', auth, needRole('owner'), (req,res)=>{
   res.json(dmLog.slice(start));
 });
 app.post('/api/owner/dm-log/clear', auth, needRole('owner'), (req,res)=>{
-  dmLog = [];
-  saveJson(DM_LOG_FILE, dmLog);
-  res.json({ok:true});
+  dmLog = []; saveJson(DM_LOG_FILE, dmLog); res.json({ok:true});
 });
 
 /* ===== Socket.IO */
@@ -261,18 +338,32 @@ io.use((socket,next)=>{
     socket.user=u; next();
   }catch(e){ next(new Error('bad token')); }
 });
+
 function presence(){
-  const arr=[]; for(const [,u] of sockets){ arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId}); }
+  const arr=[];
+  for(const [,u] of sockets){
+    arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId,status:u.status||'',avatar:u.avatar||''});
+  }
   return arr;
 }
+
+// بث إحصائيات دورية (لكل من متصل؛ المالك يراها في اللوحة)
+setInterval(()=>{
+  io.emit('stats', { online: sockets.size, totalMsgs: stats.totalMsgs, dmToday: stats.dmToday });
+}, 5000);
+
 io.on('connection',socket=>{
   const p=socket.user||{};
   const u={
     socketId:socket.id, userId:p.userId, username:p.username,
     role: p.role, perms: p.perms||{}, deviceId:p.deviceId||'',
-    ip: ipFromSocket(socket), color: colorFor(p.username), connectedAt: now()
+    ip: ipFromSocket(socket), color: colorFor(p.username), connectedAt: now(),
+    status:'', avatar:''
   };
   sockets.set(socket.id,u);
+
+  // إرسال مثبت إن وجد
+  if(pinned) socket.emit('pin:update', pinned);
 
   // رسالة انضمام (مرة كل 5 دقائق لنفس الجهاز/IP)
   const joinKey = u.deviceId || ('ip:'+u.ip);
@@ -283,10 +374,32 @@ io.on('connection',socket=>{
   io.emit('presence', presence());
 
   socket.on('chat:msg',(d={})=>{
-    const text=(d.text||'').toString().slice(0,1500).trim(); if(!text) return;
+    let text=(d.text||'').toString().slice(0,1500).trim(); if(!text) return;
     if(isBanned({ip:u.ip,deviceId:u.deviceId})){ socket.emit('banned',{reason:'banned'}); socket.disconnect(); return; }
+
+    // أوامر سلاش (للمشرفين/المالك/الأدمن حسب الصلاحيات)
+    if(text.startsWith('/')){
+      const parts = text.split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+      const arg = parts.slice(1).join(' ').trim();
+      const nameTo = (s)=>{ s=(s||'').trim(); const t=[...sockets.values()].find(x=>x.username.toLowerCase()===s.toLowerCase()); return t; };
+
+      if(cmd==='/clear'){ if(u.perms.clear){ messages.length=0; io.emit('admin:clear'); sys('تم مسح الدردشة'); } return; }
+      if(cmd==='/pin'){ if(u.perms.pin && arg){ pinned = { text: arg.slice(0,300), ts: now(), by:u.username }; io.emit('pin:update', pinned); sys('تم تثبيت رسالة'); } return; }
+      if(cmd==='/unpin'){ if(u.perms.pin){ pinned=null; io.emit('pin:update', null); sys('تم إلغاء التثبيت'); } return; }
+      if(cmd==='/kick'){ if(u.perms.kick){ const t=nameTo(arg); if(t){ const s=io.sockets.sockets.get(t.socketId); if(s){ s.emit('banned',{reason:'kicked'}); s.disconnect(true); addAudit('kick',{by:u.username,deviceId:t.deviceId}); sys(`تم طرد ${t.username}`);} } } return; }
+      if(cmd==='/bandev'){ if(u.perms.banDevice){ const t=nameTo(arg); if(t){ if(!bans.find(b=>b.targetType==='deviceId'&&b.targetValue===t.deviceId)){ bans.push({targetType:'deviceId',targetValue:t.deviceId,by:u.username,ts:now()}); saveJson(BANS_FILE,bans);} addAudit('ban',{by:u.username,targetType:'deviceId',targetValue:t.deviceId}); const s=io.sockets.sockets.get(t.socketId); if(s){ s.emit('banned',{reason:'banned'}); s.disconnect(true);} sys(`تم حظر ${t.username}`);} } return; }
+      if(cmd==='/banip'){ if(u.perms.banIp){ const t=nameTo(arg); if(t){ if(!bans.find(b=>b.targetType==='ip'&&b.targetValue===t.ip)){ bans.push({targetType:'ip',targetValue:t.ip,by:u.username,ts:now()}); saveJson(BANS_FILE,bans);} addAudit('ban',{by:u.username,targetType:'ip',targetValue:t.ip}); const s=io.sockets.sockets.get(t.socketId); if(s){ s.emit('banned',{reason:'banned'}); s.disconnect(true);} sys(`تم حظر ${t.username}`);} } return; }
+      // أمر مساعدة بسيط
+      if(cmd==='/help'){ socket.emit('system',{text:'أوامر: /kick name, /banDev name, /banIP name, /clear, /pin نص, /unpin'}); return; }
+    }
+
+    // فلترة
+    text = filterText(text);
+
     const msg={from:u.username,userId:u.userId,color:u.color,text,ts:now()};
     messages.push(msg); if(messages.length>1500) messages.shift();
+    stats.totalMsgs++;
     io.emit('chat:new', msg);
   });
 
@@ -294,15 +407,8 @@ io.on('connection',socket=>{
     const t=(text||'').toString().slice(0,1500).trim(); if(!toId||!t) return;
     const target=[...sockets.values()].find(x=>x.userId===toId); if(!target) return;
 
-    // سجل الخاص — يُرى فقط من المالك عبر API
-    appendDM({
-      ts: now(),
-      from: u.username,
-      fromId: u.userId,
-      to: target.username,
-      toId: target.userId,
-      text: t
-    });
+    // سجل الخاص — يُرى فقط للمالك
+    appendDM({ ts: now(), from: u.username, fromId: u.userId, to: target.username, toId: target.userId, text: t });
 
     const payload={fromId:u.userId,toId:target.userId,text:t,ts:now()};
     socket.to(target.socketId).emit('dm:new',payload);
