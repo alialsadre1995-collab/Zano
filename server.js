@@ -1,4 +1,4 @@
-// server.js — نسخة مُحسَّنة (normalizePwd + debug/hash + login-smart + owner/mods + bans)
+// server.js — نسخـة كاملة: login-smart + normalizePwd + owner/mods + bans + DM log للمالك فقط
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -15,27 +15,29 @@ const io = new Server(server, { cors:{ origin:'*', methods:['GET','POST','DELETE
 app.use(cors());
 app.use(express.json());
 
-// إعدادات
+/* إعدادات */
 const PORT        = process.env.PORT || 3000;
 const JWT_SECRET  = process.env.JWT_SECRET  || 'super-secret';
 const ADMIN_PASS  = process.env.ADMIN_PASS  || '1200@';
 const OWNER_PASS  = process.env.OWNER_PASS  || 'super@1200';
 
-// ملفات التخزين
-const BANS_FILE  = path.join(__dirname,'bans.json');
-const ROLES_FILE = path.join(__dirname,'roles.json');
+/* ملفات التخزين */
+const BANS_FILE   = path.join(__dirname,'bans.json');
+const ROLES_FILE  = path.join(__dirname,'roles.json');
+const DM_LOG_FILE = path.join(__dirname,'dm_log.json');
 
-// مخازن
+/* مخازن */
 const messages = [];
 const sockets  = new Map(); // socket.id -> user
-let bans  = [];
-let roles = { mods:[] };
+let bans    = [];
+let roles   = { mods:[] };
+let dmLog   = [];
 const lastJoin = new Map();
 
 const now = ()=> Date.now();
 const FIVE_MIN = 5*60*1000;
 
-// --- أدوات مساعدة
+/* أدوات */
 function ipFromHeaders(h){ const xf=h['x-forwarded-for']; if(Array.isArray(xf)) return xf[0]; if(xf) return xf.split(',')[0].trim(); return ''; }
 function ipFromReq(req){ return ipFromHeaders(req.headers) || req.socket?.remoteAddress || ''; }
 function ipFromSocket(s){ return ipFromHeaders(s.handshake.headers) || s.handshake.address || ''; }
@@ -49,9 +51,14 @@ function isBanned({ip,deviceId}){
 }
 function loadJson(file, fallback){ try{ if(fs.existsSync(file)) return JSON.parse(fs.readFileSync(file,'utf8')||'null')||fallback; }catch(_){} return fallback; }
 function saveJson(file, data){ try{ fs.writeFileSync(file, JSON.stringify(data,null,2)); }catch(_){} }
-function loadAll(){ bans = loadJson(BANS_FILE,[]); roles = loadJson(ROLES_FILE,{mods:[]}); }
+function loadAll(){
+  bans  = loadJson(BANS_FILE,[]);
+  roles = loadJson(ROLES_FILE,{mods:[]});
+  dmLog = loadJson(DM_LOG_FILE,[]);
+}
 loadAll();
 
+/* صلاحيات */
 const DEFAULT_PERMS = {
   admin:{kick:true,banDevice:true,banIp:true,unban:true,clear:true},
   mod:{kick:true,banDevice:true,banIp:false,unban:false,clear:false}
@@ -64,7 +71,7 @@ function permsFor(role){
 }
 function findMod(name){ return (roles.mods||[]).find(m => (m.username||'').toLowerCase()===(name||'').toLowerCase()); }
 
-// ----------------- Normalize password (numbers arabic/farsi -> latin, NFKC)
+/* تطبيع كلمة المرور (أرقام عربية/فارسي + NFKC) */
 function normalizePwd(s=''){
   if(!s) return '';
   const map = {
@@ -76,7 +83,7 @@ function normalizePwd(s=''){
   return conv.normalize('NFKC').trim();
 }
 
-// ----------------- JWT helpers & auth
+/* JWT & Auth */
 function auth(req,res,next){
   const h=req.headers.authorization||''; const t=h.startsWith('Bearer ')?h.slice(7):'';
   if(!t) return res.status(401).json({error:'no token'});
@@ -92,7 +99,7 @@ function allow(permsKey){
   };
 }
 
-// ----------------- Login-smart (حقلين، مع تطبيع الباس)
+/* ===== Login Smart (حقلين فقط) */
 app.post('/api/login-smart',(req,res)=>{
   const { username='', password='', deviceId='' } = req.body||{};
   const ip = ipFromReq(req);
@@ -101,40 +108,40 @@ app.post('/api/login-smart',(req,res)=>{
   const uname = latinOrGuest(username);
   const pwdNorm = normalizePwd(password);
 
-  // owner
-  if(pwdNorm && pwdNorm === OWNER_PASS){
+  // Owner
+  if(pwdNorm && pwdNorm===OWNER_PASS){
     const userId = crypto.randomUUID();
-    const role   = 'owner';
+    const role = 'owner';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
     return res.json({ token, userId, username:uname, role });
   }
-  // admin general
-  if(pwdNorm && pwdNorm === ADMIN_PASS){
+  // Admin (عام)
+  if(pwdNorm && pwdNorm===ADMIN_PASS){
     const userId = crypto.randomUUID();
-    const role   = 'admin';
+    const role = 'admin';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
     return res.json({ token, userId, username:uname, role });
   }
-  // mod from roles.json with passHash
+  // Mod من roles.json مع passHash
   const mod = findMod(uname);
   if(pwdNorm && mod && mod.passHash){
-    if(hash(pwdNorm) !== mod.passHash) return res.status(401).json({error:'wrong password'});
+    if(hash(pwdNorm)!==mod.passHash) return res.status(401).json({error:'wrong password'});
     const userId = crypto.randomUUID();
-    const role   = mod.role||'mod';
+    const role = mod.role||'mod';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod.perms||permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
     return res.json({ token, userId, username:uname, role });
   }
-  // mod exists without passHash -> allow without password
+  // Mod بدون passHash → دخول بدون كلمة سر
   if(!pwdNorm && mod && !mod.passHash){
     const userId = crypto.randomUUID();
-    const role   = mod.role||'mod';
+    const role = mod.role||'mod';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:mod.perms||permsFor(role)}, JWT_SECRET, {expiresIn:'7d'});
     return res.json({ token, userId, username:uname, role });
   }
-  // regular user when password empty
+  // User عادي بدون كلمة
   if(!pwdNorm){
     const userId = crypto.randomUUID();
-    const role   = 'user';
+    const role = 'user';
     const token = jwt.sign({userId,username:uname,role,deviceId,perms:{}}, JWT_SECRET, {expiresIn:'7d'});
     return res.json({ token, userId, username:uname, role });
   }
@@ -142,16 +149,16 @@ app.post('/api/login-smart',(req,res)=>{
   return res.status(401).json({error:'wrong password'});
 });
 
-// debug route to compute normalized string + sha256 (helpful to test)
+/* تشخيص: حساب SHA-256 للنص بعد التطبيع */
 app.post('/api/debug/hash', (req,res)=>{
   const s = normalizePwd((req.body && req.body.s) || '');
   res.json({ sNormalized: s, sha256: hash(s) });
 });
 
-// who's logged in
+/* معرفة الهوية */
 app.get('/api/whoami', auth, (req,res)=> res.json({role:req.user.role, username:req.user.username}));
 
-// ===== bans management
+/* ===== إدارة الحظر */
 app.get('/api/admin/bans', auth, allow('unban'), (req,res)=> res.json([...bans].sort((a,b)=>(b.ts||0)-(a.ts||0))));
 app.post('/api/admin/unban', auth, allow('unban'), (req,res)=>{
   const {targetType,targetValue}=req.body||{};
@@ -193,7 +200,7 @@ app.post('/api/admin/kick', auth, allow('kick'), (req,res)=>{
   res.json({ok:done});
 });
 
-// user-info
+/* ===== كشف معلومات مباشر */
 app.get('/api/admin/user-info', auth, (req,res)=>{
   const byId=req.query.userId, byName=(req.query.username||'').toLowerCase();
   for(const [,u] of sockets.entries()){
@@ -204,7 +211,7 @@ app.get('/api/admin/user-info', auth, (req,res)=>{
   res.status(404).json({error:'not found'});
 });
 
-// owner mods management
+/* ===== إدارة المشرفين (مالك فقط) */
 app.get('/api/owner/mods', auth, needRole('owner'), (req,res)=> res.json(roles.mods||[]));
 app.post('/api/owner/mods', auth, needRole('owner'), (req,res)=>{
   const {username,role='mod',password} = req.body||{};
@@ -227,7 +234,24 @@ app.delete('/api/owner/mods/:username', auth, needRole('owner'), (req,res)=>{
   res.json({ok:true});
 });
 
-// ----------------- Socket.IO
+/* ===== سجل الخاص (DM) — للمالك فقط */
+function appendDM(entry){
+  dmLog.push(entry);
+  if(dmLog.length>5000) dmLog = dmLog.slice(-3000); // احتفاظ بآخر 3000
+  saveJson(DM_LOG_FILE, dmLog);
+}
+app.get('/api/owner/dm-log', auth, needRole('owner'), (req,res)=>{
+  const n = Math.min(Number(req.query.limit||200), 2000);
+  const start = Math.max(dmLog.length - n, 0);
+  res.json(dmLog.slice(start));
+});
+app.post('/api/owner/dm-log/clear', auth, needRole('owner'), (req,res)=>{
+  dmLog = [];
+  saveJson(DM_LOG_FILE, dmLog);
+  res.json({ok:true});
+});
+
+/* ===== Socket.IO */
 io.use((socket,next)=>{
   try{
     const t=socket.handshake.auth?.token||'';
@@ -237,12 +261,10 @@ io.use((socket,next)=>{
     socket.user=u; next();
   }catch(e){ next(new Error('bad token')); }
 });
-
 function presence(){
   const arr=[]; for(const [,u] of sockets){ arr.push({userId:u.userId,username:u.username,color:u.color,deviceId:u.deviceId}); }
   return arr;
 }
-
 io.on('connection',socket=>{
   const p=socket.user||{};
   const u={
@@ -252,6 +274,7 @@ io.on('connection',socket=>{
   };
   sockets.set(socket.id,u);
 
+  // رسالة انضمام (مرة كل 5 دقائق لنفس الجهاز/IP)
   const joinKey = u.deviceId || ('ip:'+u.ip);
   const last = lastJoin.get(joinKey)||0;
   if(now()-last>FIVE_MIN){ sys(`${u.username} انضم إلى الغرفة`); lastJoin.set(joinKey,now()); }
@@ -270,14 +293,26 @@ io.on('connection',socket=>{
   socket.on('dm:send',({toId,text}={})=>{
     const t=(text||'').toString().slice(0,1500).trim(); if(!toId||!t) return;
     const target=[...sockets.values()].find(x=>x.userId===toId); if(!target) return;
+
+    // سجل الخاص — يُرى فقط من المالك عبر API
+    appendDM({
+      ts: now(),
+      from: u.username,
+      fromId: u.userId,
+      to: target.username,
+      toId: target.userId,
+      text: t
+    });
+
     const payload={fromId:u.userId,toId:target.userId,text:t,ts:now()};
-    socket.to(target.socketId).emit('dm:new',payload); socket.emit('dm:new',payload);
+    socket.to(target.socketId).emit('dm:new',payload);
+    socket.emit('dm:new',payload);
   });
 
   socket.on('disconnect',()=>{ sockets.delete(socket.id); io.emit('presence', presence()); });
 });
 
-// serve page
+/* صفحة */
 app.get('/',(req,res)=>{ res.setHeader('Content-Type','text/html; charset=utf-8'); fs.createReadStream(path.join(__dirname,'page.html')).pipe(res); });
 app.get('/healthz',(req,res)=>res.json({ok:true}));
 
