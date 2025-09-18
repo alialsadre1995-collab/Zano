@@ -1,3 +1,5 @@
 {
-  "mods": []
+  "mods": [
+    { "username": "Ali", "role": "mod", "password": "ali123" }
+  ]
 }
