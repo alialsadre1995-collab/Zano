@@ -1,5 +1,5 @@
 {
   "mods": [
-    { "username": "Ali", "role": "mod", "password": "ali123" }
+    { "username": "Rido", "role": "admin", "password": "12345" }
   ]
 }
