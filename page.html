@@ -3,66 +3,54 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>غرفة العرب</title>
+<title>غرفة العرب • v14</title>
 <style>
-:root{
-  --bg:#0b0c0f; --fg:#e7eaee; --muted:#a3aab5; --accent:#22b8ff; --card:#121419; --input:#0f1216; --line:#1c2027;
-}
-*{box-sizing:border-box} html,body{height:100%}
+:root{--bg:#0b0c0f;--fg:#e7eaee;--mut:#a3aab5;--acc:#22b8ff;--card:#121419;--line:#1c2027;--input:#0f1216}
+*{box-sizing:border-box}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
-
-.wrap{display:flex;flex-direction:column;min-height:100%;position:relative}
+.wrap{display:flex;flex-direction:column;min-height:100%}
 .top{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line);background:#0d0f13;position:sticky;top:0;z-index:5}
-.top .ttl{font-weight:800}
-
+.ttl{font-weight:800}
+.actions{display:flex;gap:8px}
+.icon{width:36px;height:36px;border-radius:10px;background:#151922;border:1px solid var(--line);display:grid;place-items:center;cursor:pointer}
+.icon:active{transform:scale(.98)}
 .body{display:flex;min-height:0;flex:1}
 .side{width:0;transition:width .2s ease;overflow:hidden;border-left:1px solid var(--line)}
 .side.open{width:260px}
 .users{padding:8px;display:flex;flex-direction:column;gap:6px}
 .user{display:flex;justify-content:space-between;gap:6px;padding:10px;border-radius:10px;background:#11141a;border:1px solid var(--line);cursor:pointer}
-.user .r{opacity:.7}
-
+.user .r{opacity:.6}
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .pinned{padding:8px 10px;background:#0e1218;border-bottom:1px solid var(--line);color:#f7e7a8;display:none}
 .pinned.show{display:block}
-.msgs{flex:1;overflow:auto;scroll-behavior:smooth;padding:10px 12px}
-.msg{direction:rtl; display:flex; gap:10px; align-items:flex-start; margin:8px 0}
-.msg .name{min-width:120px; color:#7dd3fc; text-align:right}
-.msg .text{white-space:pre-wrap; word-break:break-word; text-align:right}
-.sys{color:#a7b0be; font-size:13px; opacity:.9}
-
-.inputBar{position:sticky; bottom:0; z-index:5; border-top:1px solid var(--line); background:#0d0f13; padding:10px; display:flex; gap:10px; align-items:center}
-.inputBar input{flex:1; height:46px; border-radius:12px; border:1px solid var(--line); background:var(--input); color:var(--fg); padding:0 12px; font-size:16px}
-.btn{height:46px; min-width:80px; border:0; border-radius:12px; background:var(--accent); color:#001b29; font-weight:800}
+.msgs{flex:1;overflow:auto;padding:10px 12px;scroll-behavior:smooth}
+.msg{direction:rtl;display:flex;gap:10px;align-items:flex-start;margin:8px 0}
+.name{min-width:120px;color:#7dd3fc;text-align:right;cursor:pointer}
+.text{text-align:right;white-space:pre-wrap;word-break:break-word}
+.sys{color:#9fb0c4;font-size:13px}
+.inputBar{position:sticky;bottom:0;border-top:1px solid var(--line);background:#0d0f13;padding:10px;display:flex;gap:10px;align-items:center;z-index:4}
+.inputBar input{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 12px;font-size:16px}
+.btn{height:46px;min-width:84px;border:0;border-radius:12px;background:var(--acc);color:#001b29;font-weight:800}
 .btn:active{opacity:.85}
-
-.actions{display:flex; gap:8px}
-.icon{width:36px; height:36px; border-radius:10px; background:#151922; border:1px solid var(--line); display:grid; place-items:center; cursor:pointer}
-.icon:active{transform:scale(.98)}
-.badge{display:inline-block;min-width:18px;padding:2px 6px;border-radius:999px;background:#e11d48;color:#fff;font-size:12px;margin-right:6px}
-
-.login{position:fixed; inset:0; background:#0b0c0fe6; z-index:99999; display:flex; align-items:center; justify-content:center}
-.login .box{width:min(560px,92vw); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px}
-.row{display:flex; gap:10px; margin:10px 0}
-.input{height:46px; background:var(--input); border:1px solid var(--line); border-radius:12px; color:var(--fg); padding:0 12px; flex:1}
-
-.menu{position:fixed; z-index:40; background:#12151c; border:1px solid var(--line); border-radius:12px; padding:6px; min-width:180px}
-.menu button{width:100%; text-align:right; padding:10px; background:#0f1218; color:var(--fg); border:1px solid var(--line); border-radius:8px; margin:4px 0; cursor:pointer}
+.menu{position:fixed;z-index:40;background:#12151c;border:1px solid var(--line);border-radius:12px;padding:6px;min-width:200px}
+.menu button{width:100%;text-align:right;padding:10px;background:#0f1218;color:var(--fg);border:1px solid var(--line);border-radius:8px;margin:4px 0;cursor:pointer}
 .menu button:active{opacity:.85}
+.dm,.panel{position:fixed;inset:auto 8px 72px 8px;background:#12151c;border:1px solid var(--line);border-radius:14px;display:none}
+.dm .hd,.panel .hd{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--line)}
+.dm .list{max-height:45vh;overflow:auto;padding:8px}
+.dm .item{background:#0f1218;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.dm .send{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.dm .send input{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 10px}
+.panel .sec{padding:10px;border-bottom:1px solid var(--line)}
+.panel .row{display:flex;gap:8px}
+.panel input,.panel select{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 10px}
 
-.dm{position:fixed; inset:auto 8px 72px auto; right:8px; width:min(360px,92vw); background:#12151c; border:1px solid var(--line); border-radius:14px; display:none}
-.dm .hd{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line)}
-.dm .list{max-height:45vh; overflow:auto; padding:8px}
-.dm .item{background:#0f1218; border:1px solid var(--line); border-radius:10px; padding:8px; margin:6px 0}
-.dm .send{display:flex; gap:8px; padding:10px; border-top:1px solid var(--line)}
-.dm .send input{flex:1; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--input); color:var(--fg); padding:0 10px}
-
-.panel{position:fixed; inset:auto 8px 72px 8px; background:#12151c; border:1px solid var(--line); border-radius:14px; display:none}
-.panel .hd{display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid var(--line)}
-.panel .sec{padding:10px; border-bottom:1px solid var(--line)}
-.panel .sec:last-child{border-bottom:0}
-.panel .row{display:flex; gap:8px}
-.panel input, .panel select {flex:1; height:40px; border-radius:10px; border:1px solid var(--line); background:var(--input); color:var(--fg); padding:0 10px}
+.login{position:fixed;inset:0;background:#0b0c0fe6;z-index:99999;display:flex;align-items:center;justify-content:center;touch-action:none;overscroll-behavior:none}
+.login .box{width:min(560px,92vw);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;transform:translateZ(0)}
+.row{display:flex;gap:10px;margin:10px 0}
+.input{height:46px;background:var(--input);border:1px solid var(--line);border-radius:12px;color:var(--fg);padding:0 12px;flex:1}
+.small{font-size:13px;color:#9fb0c4}
+.avatar{width:24px;height:24px;border-radius:50%;background:#263040;border:1px solid #2c3543;object-fit:cover;margin-left:6px}
 </style>
 </head>
 <body>
@@ -71,8 +59,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
     <div class="ttl"># العرب</div>
     <div class="actions">
       <div class="icon" id="btnUsers" title="المتواجدون">👥</div>
-      <div class="icon" id="btnDM" title="الرسائل الخاصة">✉️ <span id="dmBadge" style="display:none" class="badge">0</span></div>
-      <div class="icon" id="btnAdmin" title="أدوات الإدارة">🧰</div>
+      <div class="icon" id="btnDM" title="الرسائل الخاصة">✉️ <span id="dmBadge" class="badge" style="display:none;background:#e11d48;color:#fff;border-radius:999px;padding:0 6px;font-size:12px">0</span></div>
+      <div class="icon" id="btnProfile" title="ملفي">🧑‍💻</div>
+      <div class="icon" id="btnAdmin" title="الإدارة">🧰</div>
     </div>
   </div>
 
@@ -91,12 +80,13 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
   </div>
 </div>
 
-<!-- Login -->
+<!-- Login (ثابت لا يهتز) -->
 <div class="login" id="login">
   <div class="box">
-    <h2>تسجيل الدخول</h2>
+    <h2 style="margin:0 0 8px">تسجيل الدخول</h2>
     <div class="row"><input id="user" class="input" placeholder="اسم المستخدم (إنجليزي)"></div>
-    <div class="row"><input id="pass" class="input" placeholder="كلمة السر (فارغة = مستخدم)" type="password"></div>
+    <div class="row"><input id="pass" class="input" type="password" placeholder="كلمة السر (فارغة = مستخدم)"></div>
+    <div class="small">المالك: <b>Owner</b> / <code>1200@</code> — الأدمن: <b>Admin</b> / <code>1200@</code></div>
     <div class="row" style="justify-content:flex-end"><button class="btn" id="btnGo" type="button">دخول</button></div>
   </div>
 </div>
@@ -105,28 +95,57 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 <div class="dm" id="dmWin">
   <div class="hd"><div id="dmTitle">خاص</div><button class="btn" id="dmClose" style="min-width:60px">إغلاق</button></div>
   <div class="list" id="dmList"></div>
-  <div class="send">
-    <input id="dmText" placeholder="اكتب رسالة خاصة...">
-    <button class="btn" id="dmSend" style="min-width:60px">إرسال</button>
+  <div class="send"><input id="dmText" placeholder="اكتب رسالة خاصة..."><button class="btn" id="dmSend">إرسال</button></div>
+</div>
+
+<!-- Profile -->
+<div class="panel" id="profileWin">
+  <div class="hd"><div>ملفي</div><button class="btn" id="prClose" style="min-width:60px">إغلاق</button></div>
+  <div class="sec">
+    <div class="row"><input id="prAvatar" placeholder="رابط الصورة (avatar URL)"></div>
+    <div class="row"><input id="prStatus" placeholder="الحالة (status)"></div>
+    <button class="btn" id="prSave">حفظ</button>
   </div>
 </div>
 
-<!-- Admin panel -->
+<!-- Admin -->
 <div class="panel" id="adminWin">
   <div class="hd"><div>لوحة الإدارة</div><button class="btn" id="admClose" style="min-width:60px">إغلاق</button></div>
   <div class="sec" id="whoami" style="font-size:13px;color:#9fb0c4"></div>
+
   <div class="sec">
+    <h4 style="margin:0 0 6px">أدوات سريعة</h4>
     <div class="row">
       <select id="adminAction">
         <option value="clear">مسح الدردشة</option>
         <option value="pin">تثبيت رسالة</option>
         <option value="kick">طرد عضو</option>
-        <option value="ban">حظر عضو</option>
-        <option value="unban">فك حظر (IP/جهاز)</option>
+        <option value="banDev">حظر (جهاز)</option>
+        <option value="banIP">حظر (IP)</option>
+        <option value="unban">فك حظر</option>
       </select>
-      <input id="admTarget" placeholder="UserId / IP / DeviceId / نص التثبيت">
+      <input id="admTarget" placeholder="UserName/UserId أو IP/DeviceId أو نص التثبيت">
     </div>
     <button class="btn" id="admDo">تنفيذ</button>
+  </div>
+
+  <div class="sec">
+    <h4 style="margin:0 0 6px">قائمة الحظر</h4>
+    <div id="bansBox" class="small">—</div>
+  </div>
+
+  <div class="sec" id="modsSec" style="display:none">
+    <h4 style="margin:0 0 6px">إدارة المشرفين</h4>
+    <div class="row">
+      <input id="modName" placeholder="اسم المشرف (إنجليزي)">
+      <input id="modPass" placeholder="كلمة سر (اختياري)">
+    </div>
+    <div class="row">
+      <button class="btn" id="modSave">حفظ/تحديث</button>
+      <button class="btn" id="modDel"  style="background:#ef4444">حذف</button>
+      <span class="small" id="modsHint"></span>
+    </div>
+    <div class="small" id="modsList" style="margin-top:6px"></div>
   </div>
 </div>
 
@@ -135,28 +154,34 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 const $=s=>document.querySelector(s), app=$('#app'), login=$('#login');
 const msgs=$('#msgs'), users=$('#users'), side=$('#side'), pinned=$('#pinned');
 const dmWin=$('#dmWin'), dmList=$('#dmList'), dmText=$('#dmText'), dmBadge=$('#dmBadge'), dmTitle=$('#dmTitle');
-let sock=null, me={}, userlist=[], dmTarget=null, unread=0;
-let mentionName = ''; // لتلوين المنشن
+const prWin=$('#profileWin');
+let sock=null, me={}, userlist=[], dmTarget=null, unread=0, mentionName='';
 
-// صوت تنبيه بسيط (Base64 صغير)
+// صوت بسيط للتنبيه
 const ding = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAAACAAACAgAA');
-function ping(){ try{ ding.currentTime=0; ding.play(); }catch{} }
+function ping(){ try{ding.currentTime=0; ding.play();}catch{} }
 
 function el(t,c,txt){const e=document.createElement(t); if(c) e.className=c; if(txt!=null) e.textContent=txt; return e;}
 function scrollBottom(){ msgs.scrollTop = msgs.scrollHeight + 300; }
-function deviceId(){ let d=localStorage.deviceId; if(!d){ d='dev-'+Math.random().toString(36).slice(2)+Date.now(); localStorage.deviceId=d;} return d; }
-async function api(url,data){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw j; return j; }
+function deviceId(){ let d=localStorage.deviceId; if(!d){ d='dev-'+Math.random().toString(36).slice(2)+Date.now(); localStorage.deviceId=d; } return d; }
+async function api(url, data, method='POST'){ const r=await fetch(url,{method,headers:{'Content-Type':'application/json', ...(localStorage.token?{'Authorization':'Bearer '+localStorage.token}:{})}, body: method==='GET'?undefined:JSON.stringify(data)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw j; return j; }
 
-// —— Login
+// Login ثابت
 async function doLogin(){
   const username=$('#user').value, password=$('#pass').value;
   try{
     const j=await api('/api/login-smart',{username,password,deviceId:deviceId()});
-    localStorage.token=j.token; me=j; mentionName = j.username;
+    localStorage.token=j.token; me=j; mentionName=j.username;
     login.style.display='none'; app.hidden=false; boot();
   }catch(e){ alert(e?.error||'فشل الدخول'); }
 }
+$('#btnGo').onclick=doLogin;
+document.addEventListener('keydown',e=>{ if(e.key==='Enter' && login.style.display!=='none') doLogin(); });
 
+// iOS: منع اهتزاز صفحة الدخول
+window.addEventListener('touchmove', e=>{ if(login.style.display!=='none') e.preventDefault(); }, {passive:false});
+
+// boot socket
 function boot(){
   sock=io('/',{ auth:{ token: localStorage.token } });
 
@@ -164,7 +189,9 @@ function boot(){
   sock.on('disconnect', ()=> addSys('انقطع الاتصال.'));
 
   sock.on('userlist', list=>{ userlist=list||[]; renderUsers(); });
-  sock.on('msg', m=>{ addMsg(m.from, m.text, m.role); if(isMention(m.text)) { document.title='🔔 منشن جديد'; ping(); setTimeout(()=>document.title='غرفة العرب',1500);} });
+  sock.on('profile:update', p=>{ const u=userlist.find(x=>x.userId===p.userId); if(u){ Object.assign(u,p); renderUsers(); } });
+
+  sock.on('msg', m=>{ addMsg(m.from, m.text, m.role); if(isMention(m.text)){ document.title='🔔 منشن'; ping(); setTimeout(()=>document.title='غرفة العرب • v14',1200);} });
   sock.on('sys', s=> addSys(s.text));
   sock.on('clear', ()=>{ msgs.innerHTML=''; pinned.classList.remove('show'); });
   sock.on('pin', txt=>{ pinned.textContent='📌 '+txt; pinned.classList.add('show'); });
@@ -172,7 +199,6 @@ function boot(){
   sock.on('dm', m=>{ unread++; dmBadge.style.display='inline-block'; dmBadge.textContent=unread; addDM(m.from, m.text, m.t); ping(); });
   sock.on('dm:sent', m=>{ const toName=(getUser(m.toId)?.username||m.toId); addDM('أنا → '+toName, m.text, m.t); });
 
-  // ترحيب ثابت
   addMsg('ChanServ','أهلًا بك في غرفة العرب!\n❤️😍🥳\n☺️😎\n🥳🥳\n😜','sys');
 
   // UI
@@ -180,133 +206,162 @@ function boot(){
   $('#msgInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); }});
   $('#btnUsers').onclick=()=> side.classList.toggle('open');
 
-  $('#btnDM').onclick=openDM;
-  $('#dmClose').onclick=()=> dmWin.style.display='none';
-  $('#dmSend').onclick=sendDM;
+  $('#btnDM').onclick=openDM; $('#dmClose').onclick=()=> dmWin.style.display='none'; $('#dmSend').onclick=sendDM;
+
+  $('#btnProfile').onclick=openProfile;
+  $('#prClose').onclick=()=> prWin.style.display='none';
+  $('#prSave').onclick=saveProfile;
+  loadProfile();
 
   $('#btnAdmin').onclick=openAdmin;
   $('#admClose').onclick=()=> $('#adminWin').style.display='none';
   $('#admDo').onclick=doAdmin;
-
-  // iOS keyboard padding (يبقي آخر سطر ظاهر)
-  const pad=el('div'); pad.style.height='0px'; msgs.after(pad);
-  window.visualViewport && window.visualViewport.addEventListener('resize', ()=>{
-    const gap = Math.max(0, window.innerHeight - window.visualViewport.height);
-    pad.style.height = gap ? (gap+10)+'px' : '0px';
-    scrollBottom();
-  });
+  $('#modSave').onclick=saveMod;
+  $('#modDel').onclick=delMod;
 }
 
-// —— رسائل عامة
-function roleIcon(role){
-  if(role==='owner') return '& ';
-  if(role==='admin') return '★ ';
-  if(role==='mod')   return '✦ ';
-  return '';
-}
+// roles → رموز
+function iconRole(r){ if(r==='owner')return '& '; if(r==='admin')return '★ '; if(r==='mod')return '✦ '; return ''; }
+
+// رسائل
 function addMsg(name,text,role){
   const m=el('div','msg');
-  const n=el('div','name', roleIcon(role)+name);
-  // جعل الاسم قابل للنقر لفتح القائمة
-  n.style.cursor='pointer';
+  const n=el('div','name', iconRole(role)+name);
   n.onclick=(ev)=> openUserMenuByName(name, ev.clientX, ev.clientY);
   const t=el('div','text', text);
-  // تلوين المنشن
   if(isMention(text)){ t.style.background='#1a2130'; t.style.borderRadius='8px'; t.style.padding='6px 8px'; }
   m.append(n,t); msgs.append(m); scrollBottom();
 }
 function addSys(t){ const s=el('div','sys','• '+t); msgs.append(s); scrollBottom(); }
-
 function isMention(txt){
   if(!txt || !mentionName) return false;
-  const re = new RegExp('(^|\\s)@'+mentionName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(\\b|\\s)','i');
+  const re = new RegExp('(^|\\s)@'+mentionName.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')+'(\\b|\\s)','i');
   return re.test(txt);
 }
+function sendNow(){ const v=$('#msgInput').value.trim(); if(!v)return; sock.emit('msg',v); $('#msgInput').value=''; scrollBottom(); }
 
-function sendNow(){
-  const v=$('#msgInput').value.trim(); if(!v) return;
-  sock.emit('msg', v); $('#msgInput').value=''; scrollBottom();
-}
-
-// —— قائمة المتواجدين
+// users
 function renderUsers(){
   users.innerHTML='';
   userlist.forEach(u=>{
     const li=el('div','user');
-    li.append(el('div',null, roleIcon(u.role)+u.username), el('div','r',u.role));
+    const left=el('div',null,'');
+    const av=document.createElement('img'); av.className='avatar'; av.src=u.avatar||''; left.append(av, document.createTextNode(iconRole(u.role)+u.username));
+    const right=el('div','r', u.status||u.role);
+    li.append(left,right);
     li.onclick=(ev)=> openUserMenu(u, ev.clientX, ev.clientY);
     users.append(li);
   });
 }
 function getUser(id){ return userlist.find(u=>u.userId===id); }
 
-// —— قائمة خيارات على الاسم (رد / خاص / إدارة حسب صلاحياتك)
+// menu on name
 function openUserMenu(user, x, y){
   closeMenus();
   const u = typeof user==='string' ? userlist.find(n=>n.username===user) : user;
-  const menu = el('div','menu'); menu.style.left=(x-180)+'px'; menu.style.top=(y+6)+'px';
-
-  // رد على رسالة (يحق لأي مستخدم)
+  const menu = el('div','menu'); menu.style.left=(x-200)+'px'; menu.style.top=(y+6)+'px';
+  const btn=(t,fn)=>{ const b=document.createElement('button'); b.textContent=t; b.onclick=()=>{fn(); closeMenus();}; return b; };
   menu.append(btn('رد على رسالة', ()=>{ const inp=$('#msgInput'); inp.value=(inp.value?inp.value+'\n':'')+`@${u.username} `; inp.focus(); }));
-
-  // خاص
-  menu.append(btn('فتح خاص', ()=>{ chooseDM(u.userId, u.username); }));
-
-  // أدوات إدارة (للمالك/أدمن/مشرف)
-  if(me.role==='owner' || me.role==='admin' || me.role==='mod'){
+  menu.append(btn('فتح خاص', ()=> chooseDM(u.userId, u.username)));
+  if(['owner','admin','mod'].includes(me.role)){
     menu.append(btn('طرد', ()=> sock.emit('admin:kick', u.userId)));
     menu.append(btn('حظر (جهاز)', ()=> sock.emit('admin:ban', {userId:u.userId})));
-    // حظر IP ليس لدينا API مباشر لمعرفته هنا؛ يبقى عبر لوحة الإدارة بإدخال IP يدوي إذا لزم.
   }
-
   document.body.appendChild(menu);
-  function btn(t,fn){ const b=document.createElement('button'); b.textContent=t; b.onclick=()=>{ fn(); closeMenus(); }; return b; }
-  function closeMenus(){ document.querySelectorAll('.menu').forEach(m=>m.remove()); }
-  document.addEventListener('click', function handler(e){ if(!menu.contains(e.target)){ closeMenus(); document.removeEventListener('click', handler); }}, {once:true});
+  document.addEventListener('click', function handler(e){ if(!menu.contains(e.target)){ closeMenus(); document.removeEventListener('click', handler);} }, {once:true});
 }
 function openUserMenuByName(name,x,y){ openUserMenu(name,x,y); }
+function closeMenus(){ document.querySelectorAll('.menu').forEach(m=>m.remove()); }
 
-// —— DM
+// DM
 function openDM(){ dmWin.style.display='block'; unread=0; dmBadge.style.display='none'; dmBadge.textContent='0'; }
-function chooseDM(uid, uname){ dmTarget=uid; openDM(); dmTitle.textContent='خاص: '+(uname || getUser(uid)?.username || uid); addDM('نظام', `بدأت محادثة خاصة مع ${(uname||getUser(uid)?.username||uid)}`, Date.now()); }
+function chooseDM(uid, uname){ dmTarget=uid; openDM(); dmTitle.textContent='خاص: '+(uname||getUser(uid)?.username||uid); addDM('نظام',`بدأت محادثة خاصة مع ${(uname||getUser(uid)?.username||uid)}`, Date.now()); }
 function addDM(from, text, t){ const it=el('div','item'); it.append(el('div',null,from+' · '+new Date(t).toLocaleTimeString())); it.append(el('div',null,text)); dmList.append(it); dmList.scrollTop=dmList.scrollHeight; }
-function sendDM(){ const v=dmText.value.trim(); if(!v||!dmTarget) return; sock.emit('dm',{toUserId:dmTarget,text:v}); dmText.value=''; }
+function sendDM(){ const v=dmText.value.trim(); if(!v||!dmTarget)return; sock.emit('dm',{toUserId:dmTarget,text:v}); dmText.value=''; }
 
-// —— إدارة (مطابقة للسيرفر)
-function openAdmin(){
-  const p=$('#adminWin'); p.style.display='block';
-  $('#whoami').textContent = `اسمك: ${me.username} — الدور: ${me.role}`;
+// Profile
+async function loadProfile(){ try{ const j=await api('/api/profile',null,'GET'); $('#prAvatar').value=j.avatar||''; $('#prStatus').value=j.status||''; }catch{} }
+async function saveProfile(){
+  try{
+    await api('/api/profile',{avatar:$('#prAvatar').value.trim(), status:$('#prStatus').value.trim()});
+    alert('تمّ الحفظ'); prWin.style.display='none';
+  }catch(e){ alert(e?.error||'خطأ'); }
 }
-function doAdmin(){
-  const act=$('#adminAction').value, target=$('#admTarget').value.trim();
-  if(act==='clear') sock.emit('admin:clear');
-  else if(act==='pin') sock.emit('admin:pin', target);
-  else if(act==='kick'){ const uid=findUserId(target); if(uid) sock.emit('admin:kick', uid); }
-  else if(act==='ban'){
-    const uid=findUserId(target);
-    if(uid) sock.emit('admin:ban', {userId:uid});
-    else if(target.includes('.')) sock.emit('admin:ban', {ip:target});
-    else sock.emit('admin:ban', {deviceId:target});
-  } else if(act==='unban'){
-    if(target.includes('.')) sock.emit('admin:unban',{ip:target});
-    else sock.emit('admin:unban',{deviceId:target});
+function openProfile(){ prWin.style.display='block'; }
+
+// Admin
+async function openAdmin(){
+  $('#adminWin').style.display='block';
+  $('#whoami').textContent=`اسمك: ${me.username} — الدور: ${me.role}`;
+  // bans
+  if(['owner','admin','mod'].includes(me.role)){
+    try{
+      const j=await api('/api/admin/bans',null,'GET');
+      const box=$('#bansBox'); box.innerHTML='';
+      if(!j.bans?.length){ box.textContent='لا توجد عناصر في الحظر.'; }
+      else{
+        j.bans.forEach(b=>{
+          const r=el('div',null,(b.ip?'IP:'+b.ip:'DEV:'+b.deviceId)+' — '+(b.by||'؟'));
+          box.append(r);
+        });
+      }
+    }catch{ $('#bansBox').textContent='تعذّر تحميل الحظر.'; }
   }
+  // mods (owner only)
+  $('#modsSec').style.display = (me.role==='owner')?'block':'none';
+  if(me.role==='owner'){ loadMods(); }
+}
+async function doAdmin(){
+  const act=$('#adminAction').value, t=$('#admTarget').value.trim();
+  if(act==='clear') sock.emit('admin:clear');
+  else if(act==='pin') sock.emit('admin:pin', t);
+  else if(act==='kick'){ const id=findUserId(t); if(id) sock.emit('admin:kick', id); }
+  else if(act==='banDev'){ const id=findUserId(t); if(id) sock.emit('admin:ban',{userId:id}); else sock.emit('admin:ban',{deviceId:t}); }
+  else if(act==='banIP'){ sock.emit('admin:ban',{ip:t}); }
+  else if(act==='unban'){ if(t.includes('.')) sock.emit('admin:unban',{ip:t}); else sock.emit('admin:unban',{deviceId:t}); }
   $('#admTarget').value='';
 }
 function findUserId(txt){
-  const byName = userlist.find(u=> u.username.toLowerCase()===txt.toLowerCase());
+  const byName=userlist.find(u=>u.username.toLowerCase()===txt.toLowerCase());
   if(byName) return byName.userId;
-  const byId = userlist.find(u=> u.userId===txt);
+  const byId=userlist.find(u=>u.userId===txt);
   return byId?.userId || null;
 }
 
-// —— أحداث
-$('#btnGo').addEventListener('click', doLogin);
-document.addEventListener('keydown', e=>{ if(e.key==='Enter' && login.style.display!=='none') doLogin(); });
-window.addEventListener('load', ()=> $('#user').focus());
+// mods (owner)
+async function loadMods(){
+  try{
+    const j=await api('/api/owner/mods',null,'GET');
+    const box=$('#modsList'); box.innerHTML='';
+    j.mods.forEach(m=>{ const d=el('div','small','• '+m.username); box.append(d); });
+  }catch{ $('#modsList').textContent='تعذّر تحميل المشرفين.'; }
+}
+async function saveMod(){
+  try{
+    const j=await api('/api/owner/mods',{username:$('#modName').value.trim(), password:$('#modPass').value.trim()});
+    $('#modsHint').textContent='تمّ الحفظ'; loadMods();
+  }catch(e){ alert(e?.error||'فشل الحفظ'); }
+}
+async function delMod(){
+  try{
+    const j=await api('/api/owner/mods',{username:$('#modName').value.trim(), remove:true});
+    $('#modsHint').textContent='تمّ الحذف'; loadMods();
+  }catch(e){ alert(e?.error||'فشل الحذف'); }
+}
 
-// — منع قوائم عالقة
-function closeMenus(){ document.querySelectorAll('.menu').forEach(m=>m.remove()); }
+// فتح النوافذ
+$('#dmClose').onclick=()=> dmWin.style.display='none';
+$('#prClose').onclick=()=> prWin.style.display='none';
+
+// iOS keyboard padding لآخر الرسائل
+const pad=document.createElement('div'); pad.style.height='0px'; msgs.after(pad);
+window.visualViewport && window.visualViewport.addEventListener('resize', ()=>{
+  const gap=Math.max(0, window.innerHeight - window.visualViewport.height);
+  pad.style.height = gap ? (gap+10)+'px' : '0px';
+  scrollBottom();
+});
+
+window.addEventListener('load',()=> $('#user').focus());
 </script>
 </body>
 </html>
