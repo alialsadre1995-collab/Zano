@@ -1,4 +1,4 @@
-// server.js — v15 (ثابت + إدارة + بروفايل + حظر IP/جهاز)
+// server.js — نسخة قديمة + تحديث كبير (بروفايل، حظر IP/جهاز، DM log، إدارة كاملة)
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -11,10 +11,11 @@ const io = new Server(server,{ cors:{origin:'*'} });
 
 app.use(express.json({limit:'2mb'}));
 
-// تخزين (اختياري: RENDER DISK عبر DATA_DIR)
+// ملفات تخزين (مع دعم Render Disk عبر DATA_DIR)
 const DATA = process.env.DATA_DIR || __dirname;
 const ROLES_FILE = path.join(DATA,'roles.json');
 const BANS_FILE  = path.join(DATA,'bans.json');
+const DM_LOG_FILE= path.join(DATA,'dm_log.json');
 const AUDIT_FILE = path.join(DATA,'audit.json');
 
 function readJSON(f, def){ try{ return JSON.parse(fs.readFileSync(f,'utf8')); }catch{ return def; } }
@@ -22,13 +23,16 @@ function writeJSON(f, obj){ fs.writeFileSync(f, JSON.stringify(obj,null,2)); }
 
 if(!fs.existsSync(ROLES_FILE)) writeJSON(ROLES_FILE,{mods:[]});
 if(!fs.existsSync(BANS_FILE))  writeJSON(BANS_FILE,[]);
+if(!fs.existsSync(DM_LOG_FILE))writeJSON(DM_LOG_FILE,[]);
 if(!fs.existsSync(AUDIT_FILE)) writeJSON(AUDIT_FILE,[]);
 
-// في الذاكرة
-const users = new Map();  // socketId -> session
-const tokenMap = new Map(); // token -> session-lite
+// إعدادات افتراضية
 const OWNER_USER='Owner', OWNER_PASS='1200@';
 const ADMIN_USER='Admin', ADMIN_PASS='1200@';
+
+// في الذاكرة
+const users = new Map();   // socketId -> session
+const tokenMap = new Map();// token -> session-lite
 
 function tok(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
 function now(){ return Date.now(); }
@@ -39,7 +43,7 @@ function roleOf(username,password){
   if(username===ADMIN_USER && password===ADMIN_PASS) return 'admin';
   const roles = readJSON(ROLES_FILE,{mods:[]});
   const rec = roles.mods.find(m=>m.username?.toLowerCase()===username?.toLowerCase());
-  if(rec){ if(!rec.password || password===rec.password) return 'mod'; }
+  if(rec && (!rec.password || password===rec.password)) return 'mod';
   return 'user';
 }
 
@@ -50,10 +54,23 @@ function isBanned({ip,deviceId}){
   return b.some(x=>(x.ip && x.ip===ip) || (x.deviceId && x.deviceId===deviceId));
 }
 
-// صفحة
+function appendDM(rec){
+  let log=readJSON(DM_LOG_FILE,[]);
+  log.push(rec);
+  if(log.length>3000) log=log.slice(-2000);
+  writeJSON(DM_LOG_FILE,log);
+}
+function appendAudit(rec){
+  let log=readJSON(AUDIT_FILE,[]);
+  log.push(rec);
+  if(log.length>5000) log=log.slice(-3000);
+  writeJSON(AUDIT_FILE,log);
+}
+
+// صفحة رئيسية
 app.get('/', (req,res)=> res.sendFile(path.join(__dirname,'page.html')));
 
-// دخول ذكي (مستخدم/مشرف/أدمن/مالك)
+// API: تسجيل دخول
 app.post('/api/login-smart',(req,res)=>{
   const {username,password,deviceId}=req.body||{};
   const ip = maskIp(req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress);
@@ -96,8 +113,7 @@ app.post('/api/owner/mods', auth, authOwner, (req,res)=>{
   if(!/^[A-Za-z0-9_]{3,20}$/.test(name)) return res.status(400).json({error:'badName'});
   if(remove){ roles.mods = roles.mods.filter(m=>m.username.toLowerCase()!==name.toLowerCase()); writeJSON(ROLES_FILE,roles); return res.json({ok:true, removed:true}); }
   const rec=roles.mods.find(m=>m.username.toLowerCase()===name.toLowerCase());
-  if(rec) rec.password=password||'';
-  else roles.mods.push({username:name, password:password||''});
+  if(rec) rec.password=password||''; else roles.mods.push({username:name, password:password||''});
   writeJSON(ROLES_FILE,roles); res.json({ok:true, saved:true});
 });
 
@@ -109,6 +125,10 @@ app.post('/api/admin/user-info', auth, authAdmin, (req,res)=>{
   if(!u) return res.status(404).json({error:'notfound'});
   res.json({ok:true, user:{userId:u.userId, username:u.username, role:u.role, ip:u.ip, deviceId:u.deviceId, avatar:u.avatar||'', status:u.status||''}});
 });
+
+// سجلات
+app.get('/api/owner/dmlog', auth, authOwner, (req,res)=> res.json({ok:true, log:readJSON(DM_LOG_FILE,[])}));
+app.get('/api/owner/audit', auth, authOwner, (req,res)=> res.json({ok:true, log:readJSON(AUDIT_FILE,[])}));
 
 // Socket.io
 io.use((socket,next)=>{
@@ -124,15 +144,22 @@ function broadcastUsers(){
 
 io.on('connection',(sock)=>{
   const s=sock.data.session; users.set(sock.id,s);
-  writeJSON(AUDIT_FILE, readJSON(AUDIT_FILE,[]).concat({t:now(), act:'join', u:s.username, ip:s.ip, dev:s.deviceId}));
+  appendAudit({t:now(), act:'join', u:s.username, ip:s.ip, dev:s.deviceId});
   io.emit('sys',{text:`${s.username} انضمّ.`}); broadcastUsers();
 
-  sock.on('msg', txt=>{ const t=(''+txt).slice(0,1000); io.emit('msg',{from:s.username, text:t, role:s.role, t:now()}); });
+  sock.on('msg', txt=>{
+    const t=(''+txt).slice(0,1000);
+    io.emit('msg',{from:s.username, text:t, role:s.role, t:now()});
+  });
 
   sock.on('dm', ({toUserId,text})=>{
     const t=(''+text).slice(0,800);
     const ent=[...users.entries()].find(([id,u])=>u.userId===toUserId);
-    if(ent){ const [sid,u]=ent; io.to(sid).emit('dm',{from:s.username, fromId:s.userId, text:t, t:now()}); sock.emit('dm:sent',{toId:u.userId,text:t,t:now()}); }
+    if(ent){ const [sid,u]=ent;
+      io.to(sid).emit('dm',{from:s.username, fromId:s.userId, text:t, t:now()});
+      sock.emit('dm:sent',{toId:u.userId,text:t,t:now()});
+      appendDM({from:s.username,to:u.username,text:t,t:now()});
+    }
   });
 
   function canAdmin(){ return ['owner','admin','mod'].includes(s.role); }
@@ -141,14 +168,14 @@ io.on('connection',(sock)=>{
   sock.on('admin:kick', userId=>{
     if(!canAdmin())return;
     const ent=[...users.entries()].find(([id,u])=>u.userId===userId);
-    if(ent){ const [id,u]=ent; io.to(id).disconnect(true); io.emit('sys',{text:`${u.username} طُرد.`}); }
+    if(ent){ const [id,u]=ent; io.to(id).disconnect(true); io.emit('sys',{text:`${u.username} طُرد.`}); appendAudit({t:now(),act:'kick',by:s.username,u:u.username}); }
   });
   sock.on('admin:ban', ({userId,ip,deviceId})=>{
     if(!canAdmin())return;
     const bans=loadBans();
     if(userId){
       const ent=[...users.entries()].find(([id,u])=>u.userId===userId);
-      if(ent){ const [id,u]=ent; bans.push({ip:u.ip,deviceId:u.deviceId,by:s.username,t:now()}); saveBans(bans); io.to(id).disconnect(true); io.emit('sys',{text:`${u.username} تمّ حظره.`}); return; }
+      if(ent){ const [id,u]=ent; bans.push({ip:u.ip,deviceId:u.deviceId,by:s.username,t:now()}); saveBans(bans); io.to(id).disconnect(true); io.emit('sys',{text:`${u.username} تمّ حظره.`}); appendAudit({t:now(),act:'ban',by:s.username,u:u.username}); return; }
     }
     if(ip){ bans.push({ip,by:s.username,t:now()}); saveBans(bans); io.emit('sys',{text:`تمّ حظر IP.`}); }
     else if(deviceId){ bans.push({deviceId,by:s.username,t:now()}); saveBans(bans); io.emit('sys',{text:`تمّ حظر جهاز.`}); }
@@ -163,7 +190,7 @@ io.on('connection',(sock)=>{
 
   sock.on('disconnect',()=>{
     users.delete(sock.id);
-    writeJSON(AUDIT_FILE, readJSON(AUDIT_FILE,[]).concat({t:now(), act:'leave', u:s.username, ip:s.ip, dev:s.deviceId}));
+    appendAudit({t:now(), act:'leave', u:s.username, ip:s.ip, dev:s.deviceId});
     io.emit('sys',{text:`${s.username} خرج.`}); broadcastUsers();
   });
 });
