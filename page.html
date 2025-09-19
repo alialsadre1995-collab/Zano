@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>غرفة العرب • v14</title>
+<title>غرفة العرب • v15</title>
 <style>
-:root{--bg:#0b0c0f;--fg:#e7eaee;--mut:#a3aab5;--acc:#22b8ff;--card:#121419;--line:#1c2027;--input:#0f1216}
+:root{
+  --bg:#0b0c0f; --fg:#e7eaee; --mut:#a3aab5; --acc:#22b8ff;
+  --card:#121419; --line:#1c2027; --input:#0f1216; --fsize:16px;
+}
 *{box-sizing:border-box}html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
 .wrap{display:flex;flex-direction:column;min-height:100%}
@@ -23,16 +26,17 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .pinned{padding:8px 10px;background:#0e1218;border-bottom:1px solid var(--line);color:#f7e7a8;display:none}
 .pinned.show{display:block}
-.msgs{flex:1;overflow:auto;padding:10px 12px;scroll-behavior:smooth}
-.msg{direction:rtl;display:flex;gap:10px;align-items:flex-start;margin:8px 0}
-.name{min-width:120px;color:#7dd3fc;text-align:right;cursor:pointer}
-.text{text-align:right;white-space:pre-wrap;word-break:break-word}
+.msgs{flex:1;overflow:auto;padding:10px 12px;scroll-behavior:smooth;font-size:var(--fsize)}
+/* الاسم يمين والنص يساره باستخدام Grid */
+.msg{direction:rtl;display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:flex-start;margin:8px 0}
+.name{grid-column:1;justify-self:end;text-align:right;min-width:140px;color:#7dd3fc;cursor:pointer;font-size:calc(var(--fsize)*.95)}
+.text{grid-column:2;text-align:right;white-space:pre-wrap;word-break:break-word;font-size:var(--fsize)}
 .sys{color:#9fb0c4;font-size:13px}
 .inputBar{position:sticky;bottom:0;border-top:1px solid var(--line);background:#0d0f13;padding:10px;display:flex;gap:10px;align-items:center;z-index:4}
-.inputBar input{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 12px;font-size:16px}
+.inputBar input{flex:1;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 12px;font-size:var(--fsize)}
 .btn{height:46px;min-width:84px;border:0;border-radius:12px;background:var(--acc);color:#001b29;font-weight:800}
 .btn:active{opacity:.85}
-.menu{position:fixed;z-index:40;background:#12151c;border:1px solid var(--line);border-radius:12px;padding:6px;min-width:200px}
+.menu{position:fixed;z-index:50000;background:#12151c;border:1px solid var(--line);border-radius:12px;padding:6px;min-width:200px}
 .menu button{width:100%;text-align:right;padding:10px;background:#0f1218;color:var(--fg);border:1px solid var(--line);border-radius:8px;margin:4px 0;cursor:pointer}
 .menu button:active{opacity:.85}
 .dm,.panel{position:fixed;inset:auto 8px 72px 8px;background:#12151c;border:1px solid var(--line);border-radius:14px;display:none}
@@ -45,10 +49,13 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 .panel .row{display:flex;gap:8px}
 .panel input,.panel select{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--fg);padding:0 10px}
 
-.login{position:fixed;inset:0;background:#0b0c0fe6;z-index:99999;display:flex;align-items:center;justify-content:center;touch-action:none;overscroll-behavior:none}
-.login .box{width:min(560px,92vw);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;transform:translateZ(0)}
-.row{display:flex;gap:10px;margin:10px 0}
-.input{height:46px;background:var(--input);border:1px solid var(--line);border-radius:12px;color:var(--fg);padding:0 12px;flex:1}
+/* شاشة الدخول ثابتة ولا تهتز */
+.login{
+  position:fixed; inset:0; background:#0b0c0fe6; z-index:99999;
+  display:flex; align-items:center; justify-content:center;
+  touch-action:none; overscroll-behavior:none;
+}
+.login .box{ width:min(560px,92vw); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; }
 .small{font-size:13px;color:#9fb0c4}
 .avatar{width:24px;height:24px;border-radius:50%;background:#263040;border:1px solid #2c3543;object-fit:cover;margin-left:6px}
 </style>
@@ -59,7 +66,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
     <div class="ttl"># العرب</div>
     <div class="actions">
       <div class="icon" id="btnUsers" title="المتواجدون">👥</div>
-      <div class="icon" id="btnDM" title="الرسائل الخاصة">✉️ <span id="dmBadge" class="badge" style="display:none;background:#e11d48;color:#fff;border-radius:999px;padding:0 6px;font-size:12px">0</span></div>
+      <div class="icon" id="btnDM" title="الرسائل الخاصة">✉️ <span id="dmBadge" style="display:none;background:#e11d48;color:#fff;border-radius:999px;padding:0 6px;font-size:12px">0</span></div>
       <div class="icon" id="btnProfile" title="ملفي">🧑‍💻</div>
       <div class="icon" id="btnAdmin" title="الإدارة">🧰</div>
     </div>
@@ -80,7 +87,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
   </div>
 </div>
 
-<!-- Login (ثابت لا يهتز) -->
+<!-- Login -->
 <div class="login" id="login">
   <div class="box">
     <h2 style="margin:0 0 8px">تسجيل الدخول</h2>
@@ -104,6 +111,10 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
   <div class="sec">
     <div class="row"><input id="prAvatar" placeholder="رابط الصورة (avatar URL)"></div>
     <div class="row"><input id="prStatus" placeholder="الحالة (status)"></div>
+    <div class="row">
+      <label style="min-width:110px;display:flex;align-items:center">حجم الخط: <span id="prFontLbl" style="margin:0 6px"></span></label>
+      <input id="prFont" type="range" min="14" max="24" step="1" value="16">
+    </div>
     <button class="btn" id="prSave">حفظ</button>
   </div>
 </div>
@@ -111,7 +122,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
 <!-- Admin -->
 <div class="panel" id="adminWin">
   <div class="hd"><div>لوحة الإدارة</div><button class="btn" id="admClose" style="min-width:60px">إغلاق</button></div>
-  <div class="sec" id="whoami" style="font-size:13px;color:#9fb0c4"></div>
+  <div class="sec" id="whoami" class="small"></div>
 
   <div class="sec">
     <h4 style="margin:0 0 6px">أدوات سريعة</h4>
@@ -135,7 +146,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-
   </div>
 
   <div class="sec" id="modsSec" style="display:none">
-    <h4 style="margin:0 0 6px">إدارة المشرفين</h4>
+    <h4 style="margin:0 0 6px">إدارة المشرفين (مالك فقط)</h4>
     <div class="row">
       <input id="modName" placeholder="اسم المشرف (إنجليزي)">
       <input id="modPass" placeholder="كلمة سر (اختياري)">
@@ -157,7 +168,6 @@ const dmWin=$('#dmWin'), dmList=$('#dmList'), dmText=$('#dmText'), dmBadge=$('#d
 const prWin=$('#profileWin');
 let sock=null, me={}, userlist=[], dmTarget=null, unread=0, mentionName='';
 
-// صوت بسيط للتنبيه
 const ding = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAAACAAACAgAA');
 function ping(){ try{ding.currentTime=0; ding.play();}catch{} }
 
@@ -166,61 +176,30 @@ function scrollBottom(){ msgs.scrollTop = msgs.scrollHeight + 300; }
 function deviceId(){ let d=localStorage.deviceId; if(!d){ d='dev-'+Math.random().toString(36).slice(2)+Date.now(); localStorage.deviceId=d; } return d; }
 async function api(url, data, method='POST'){ const r=await fetch(url,{method,headers:{'Content-Type':'application/json', ...(localStorage.token?{'Authorization':'Bearer '+localStorage.token}:{})}, body: method==='GET'?undefined:JSON.stringify(data)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw j; return j; }
 
-// Login ثابت
+// دخول ثابت + إزالة طبقة الدخول نهائيًا
 async function doLogin(){
   const username=$('#user').value, password=$('#pass').value;
   try{
     const j=await api('/api/login-smart',{username,password,deviceId:deviceId()});
     localStorage.token=j.token; me=j; mentionName=j.username;
-    login.style.display='none'; app.hidden=false; boot();
+    document.body.style.overflow='';
+    if(login) login.remove();
+    app.hidden=false; boot();
   }catch(e){ alert(e?.error||'فشل الدخول'); }
 }
 $('#btnGo').onclick=doLogin;
-document.addEventListener('keydown',e=>{ if(e.key==='Enter' && login.style.display!=='none') doLogin(); });
+document.addEventListener('DOMContentLoaded', ()=>{ if(login) document.body.style.overflow='hidden'; });
+document.addEventListener('keydown',e=>{ if(e.key==='Enter' && document.body.contains(login)) doLogin(); });
 
-// iOS: منع اهتزاز صفحة الدخول
-window.addEventListener('touchmove', e=>{ if(login.style.display!=='none') e.preventDefault(); }, {passive:false});
+// iOS padding لآخر سطر مع الكيبورد
+const pad=document.createElement('div'); pad.style.height='0px'; msgs.after(pad);
+window.visualViewport && window.visualViewport.addEventListener('resize', ()=>{
+  const gap=Math.max(0, window.innerHeight - window.visualViewport.height);
+  pad.style.height = gap ? (gap+10)+'px' : '0px';
+  scrollBottom();
+});
 
-// boot socket
-function boot(){
-  sock=io('/',{ auth:{ token: localStorage.token } });
-
-  sock.on('connect', ()=> addSys('متصل. أهلاً '+me.username));
-  sock.on('disconnect', ()=> addSys('انقطع الاتصال.'));
-
-  sock.on('userlist', list=>{ userlist=list||[]; renderUsers(); });
-  sock.on('profile:update', p=>{ const u=userlist.find(x=>x.userId===p.userId); if(u){ Object.assign(u,p); renderUsers(); } });
-
-  sock.on('msg', m=>{ addMsg(m.from, m.text, m.role); if(isMention(m.text)){ document.title='🔔 منشن'; ping(); setTimeout(()=>document.title='غرفة العرب • v14',1200);} });
-  sock.on('sys', s=> addSys(s.text));
-  sock.on('clear', ()=>{ msgs.innerHTML=''; pinned.classList.remove('show'); });
-  sock.on('pin', txt=>{ pinned.textContent='📌 '+txt; pinned.classList.add('show'); });
-
-  sock.on('dm', m=>{ unread++; dmBadge.style.display='inline-block'; dmBadge.textContent=unread; addDM(m.from, m.text, m.t); ping(); });
-  sock.on('dm:sent', m=>{ const toName=(getUser(m.toId)?.username||m.toId); addDM('أنا → '+toName, m.text, m.t); });
-
-  addMsg('ChanServ','أهلًا بك في غرفة العرب!\n❤️😍🥳\n☺️😎\n🥳🥳\n😜','sys');
-
-  // UI
-  $('#sendBtn').onclick=sendNow;
-  $('#msgInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); }});
-  $('#btnUsers').onclick=()=> side.classList.toggle('open');
-
-  $('#btnDM').onclick=openDM; $('#dmClose').onclick=()=> dmWin.style.display='none'; $('#dmSend').onclick=sendDM;
-
-  $('#btnProfile').onclick=openProfile;
-  $('#prClose').onclick=()=> prWin.style.display='none';
-  $('#prSave').onclick=saveProfile;
-  loadProfile();
-
-  $('#btnAdmin').onclick=openAdmin;
-  $('#admClose').onclick=()=> $('#adminWin').style.display='none';
-  $('#admDo').onclick=doAdmin;
-  $('#modSave').onclick=saveMod;
-  $('#modDel').onclick=delMod;
-}
-
-// roles → رموز
+// أدوار ← رموز
 function iconRole(r){ if(r==='owner')return '& '; if(r==='admin')return '★ '; if(r==='mod')return '✦ '; return ''; }
 
 // رسائل
@@ -255,11 +234,15 @@ function renderUsers(){
 }
 function getUser(id){ return userlist.find(u=>u.userId===id); }
 
-// menu on name
+// قائمة الاسم (تُعرض دائمًا فوق كل شيء)
+function openUserMenuByName(name,x,y){
+  const u=userlist.find(n=>n.username===name);
+  if(u) openUserMenu(u,x,y);
+}
 function openUserMenu(user, x, y){
   closeMenus();
   const u = typeof user==='string' ? userlist.find(n=>n.username===user) : user;
-  const menu = el('div','menu'); menu.style.left=(x-200)+'px'; menu.style.top=(y+6)+'px';
+  const menu = el('div','menu'); menu.style.left=Math.max(8,(x-200))+'px'; menu.style.top=(y+6)+'px';
   const btn=(t,fn)=>{ const b=document.createElement('button'); b.textContent=t; b.onclick=()=>{fn(); closeMenus();}; return b; };
   menu.append(btn('رد على رسالة', ()=>{ const inp=$('#msgInput'); inp.value=(inp.value?inp.value+'\n':'')+`@${u.username} `; inp.focus(); }));
   menu.append(btn('فتح خاص', ()=> chooseDM(u.userId, u.username)));
@@ -270,46 +253,47 @@ function openUserMenu(user, x, y){
   document.body.appendChild(menu);
   document.addEventListener('click', function handler(e){ if(!menu.contains(e.target)){ closeMenus(); document.removeEventListener('click', handler);} }, {once:true});
 }
-function openUserMenuByName(name,x,y){ openUserMenu(name,x,y); }
 function closeMenus(){ document.querySelectorAll('.menu').forEach(m=>m.remove()); }
 
 // DM
+let dmTarget=null, unread=0;
 function openDM(){ dmWin.style.display='block'; unread=0; dmBadge.style.display='none'; dmBadge.textContent='0'; }
-function chooseDM(uid, uname){ dmTarget=uid; openDM(); dmTitle.textContent='خاص: '+(uname||getUser(uid)?.username||uid); addDM('نظام',`بدأت محادثة خاصة مع ${(uname||getUser(uid)?.username||uid)}`, Date.now()); }
-function addDM(from, text, t){ const it=el('div','item'); it.append(el('div',null,from+' · '+new Date(t).toLocaleTimeString())); it.append(el('div',null,text)); dmList.append(it); dmList.scrollTop=dmList.scrollHeight; }
+function chooseDM(uid,uname){ dmTarget=uid; openDM(); dmTitle.textContent='خاص: '+(uname||getUser(uid)?.username||uid); addDM('نظام',`بدأت محادثة خاصة مع ${(uname||getUser(uid)?.username||uid)}`, Date.now()); }
+function addDM(from,text,t){ const it=el('div','item'); it.append(el('div',null,from+' · '+new Date(t).toLocaleTimeString())); it.append(el('div',null,text)); dmList.append(it); dmList.scrollTop=dmList.scrollHeight; }
 function sendDM(){ const v=dmText.value.trim(); if(!v||!dmTarget)return; sock.emit('dm',{toUserId:dmTarget,text:v}); dmText.value=''; }
 
-// Profile
-async function loadProfile(){ try{ const j=await api('/api/profile',null,'GET'); $('#prAvatar').value=j.avatar||''; $('#prStatus').value=j.status||''; }catch{} }
-async function saveProfile(){
-  try{
-    await api('/api/profile',{avatar:$('#prAvatar').value.trim(), status:$('#prStatus').value.trim()});
-    alert('تمّ الحفظ'); prWin.style.display='none';
-  }catch(e){ alert(e?.error||'خطأ'); }
+// Profile + تحكم الخط
+function applyFont(sz){
+  document.documentElement.style.setProperty('--fsize', sz+'px');
+  localStorage.fsize = sz;
+  const lbl=document.getElementById('prFontLbl'); if(lbl) lbl.textContent=sz+'px';
 }
-function openProfile(){ prWin.style.display='block'; }
+(function initFont(){
+  const stored=parseInt(localStorage.fsize||'16',10); applyFont(stored);
+  document.getElementById('btnProfile')?.addEventListener('click', ()=>{
+    const s=document.getElementById('prFont'); if(s){ s.value=parseInt(localStorage.fsize||'16',10); applyFont(s.value); }
+  });
+})();
+document.addEventListener('input', (e)=>{ if(e.target && e.target.id==='prFont'){ applyFont(parseInt(e.target.value,10)); } });
+
+async function openProfile(){ prWin.style.display='block'; try{ const j=await api('/api/profile',null,'GET'); $('#prAvatar').value=j.avatar||''; $('#prStatus').value=j.status||''; }catch{} }
+$('#prSave').onclick=async()=>{
+  try{ await api('/api/profile',{avatar:$('#prAvatar').value.trim(), status:$('#prStatus').value.trim()}); alert('تمّ الحفظ'); prWin.style.display='none'; }catch(e){ alert(e?.error||'خطأ'); }
+};
+$('#prClose').onclick=()=> prWin.style.display='none';
 
 // Admin
 async function openAdmin(){
   $('#adminWin').style.display='block';
   $('#whoami').textContent=`اسمك: ${me.username} — الدور: ${me.role}`;
-  // bans
   if(['owner','admin','mod'].includes(me.role)){
     try{
-      const j=await api('/api/admin/bans',null,'GET');
-      const box=$('#bansBox'); box.innerHTML='';
-      if(!j.bans?.length){ box.textContent='لا توجد عناصر في الحظر.'; }
-      else{
-        j.bans.forEach(b=>{
-          const r=el('div',null,(b.ip?'IP:'+b.ip:'DEV:'+b.deviceId)+' — '+(b.by||'؟'));
-          box.append(r);
-        });
-      }
+      const j=await api('/api/admin/bans',null,'GET'); const box=$('#bansBox'); box.innerHTML='';
+      if(!j.bans?.length) box.textContent='لا توجد عناصر في الحظر.'; else j.bans.forEach(b=>{ const r=el('div',null,(b.ip?'IP:'+b.ip:'DEV:'+b.deviceId)+' — '+(b.by||'؟')); box.append(r); });
     }catch{ $('#bansBox').textContent='تعذّر تحميل الحظر.'; }
   }
-  // mods (owner only)
   $('#modsSec').style.display = (me.role==='owner')?'block':'none';
-  if(me.role==='owner'){ loadMods(); }
+  if(me.role==='owner') loadMods();
 }
 async function doAdmin(){
   const act=$('#adminAction').value, t=$('#admTarget').value.trim();
@@ -321,47 +305,42 @@ async function doAdmin(){
   else if(act==='unban'){ if(t.includes('.')) sock.emit('admin:unban',{ip:t}); else sock.emit('admin:unban',{deviceId:t}); }
   $('#admTarget').value='';
 }
-function findUserId(txt){
-  const byName=userlist.find(u=>u.username.toLowerCase()===txt.toLowerCase());
-  if(byName) return byName.userId;
-  const byId=userlist.find(u=>u.userId===txt);
-  return byId?.userId || null;
+function findUserId(txt){ const byName=userlist.find(u=>u.username.toLowerCase()===txt.toLowerCase()); if(byName) return byName.userId; const byId=userlist.find(u=>u.userId===txt); return byId?.userId||null; }
+async function loadMods(){ try{ const j=await api('/api/owner/mods',null,'GET'); const box=$('#modsList'); box.innerHTML=''; j.mods.forEach(m=> box.append(el('div','small','• '+m.username))); }catch{ $('#modsList').textContent='تعذّر تحميل المشرفين.'; } }
+async function saveMod(){ try{ await api('/api/owner/mods',{username:$('#modName').value.trim(), password:$('#modPass').value.trim()}); $('#modsHint').textContent='تمّ الحفظ'; loadMods(); }catch(e){ alert(e?.error||'فشل الحفظ'); } }
+async function delMod(){ try{ await api('/api/owner/mods',{username:$('#modName').value.trim(), remove:true}); $('#modsHint').textContent='تمّ الحذف'; loadMods(); }catch(e){ alert(e?.error||'فشل الحذف'); } }
+
+$('#btnUsers').onclick=()=> side.classList.toggle('open');
+$('#btnDM').onclick=openDM; $('#dmSend').onclick=sendDM; $('#dmClose').onclick=()=> dmWin.style.display='none';
+$('#btnProfile').onclick=openProfile; $('#btnAdmin').onclick=openAdmin;
+
+function boot(){
+  const token=localStorage.token;
+  const s=io('/',{auth:{token}});
+  sock=s;
+
+  s.on('connect', ()=> addSys('متصل. أهلاً '+me.username));
+  s.on('disconnect', ()=> addSys('انقطع الاتصال.'));
+  s.on('userlist', list=>{ userlist=list||[]; renderUsers(); });
+  s.on('profile:update', p=>{ const u=userlist.find(x=>x.userId===p.userId); if(u){ Object.assign(u,p); renderUsers(); } });
+
+  s.on('msg', m=>{ addMsg(m.from,m.text,m.role); if(isMention(m.text)){ document.title='🔔 منشن'; ping(); setTimeout(()=>document.title='غرفة العرب • v15',1200);} });
+  s.on('sys', s=> addSys(s.text));
+  s.on('clear', ()=>{ msgs.innerHTML=''; pinned.classList.remove('show'); });
+  s.on('pin', txt=>{ pinned.textContent='📌 '+txt; pinned.classList.add('show'); });
+
+  s.on('dm', m=>{ unread++; dmBadge.style.display='inline-block'; dmBadge.textContent=unread; addDM(m.from, m.text, m.t); ping(); });
+  s.on('dm:sent', m=>{ const toName=(getUser(m.toId)?.username||m.toId); addDM('أنا → '+toName, m.text, m.t); });
+
+  // ترحيب
+  addMsg('ChanServ','أهلًا بك في غرفة العرب!\n❤️😍🥳\n☺️😎\n🥳🥳\n😜','sys');
+
+  // إرسال
+  $('#sendBtn').onclick=sendNow;
+  $('#msgInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); sendNow(); }});
 }
 
-// mods (owner)
-async function loadMods(){
-  try{
-    const j=await api('/api/owner/mods',null,'GET');
-    const box=$('#modsList'); box.innerHTML='';
-    j.mods.forEach(m=>{ const d=el('div','small','• '+m.username); box.append(d); });
-  }catch{ $('#modsList').textContent='تعذّر تحميل المشرفين.'; }
-}
-async function saveMod(){
-  try{
-    const j=await api('/api/owner/mods',{username:$('#modName').value.trim(), password:$('#modPass').value.trim()});
-    $('#modsHint').textContent='تمّ الحفظ'; loadMods();
-  }catch(e){ alert(e?.error||'فشل الحفظ'); }
-}
-async function delMod(){
-  try{
-    const j=await api('/api/owner/mods',{username:$('#modName').value.trim(), remove:true});
-    $('#modsHint').textContent='تمّ الحذف'; loadMods();
-  }catch(e){ alert(e?.error||'فشل الحذف'); }
-}
-
-// فتح النوافذ
-$('#dmClose').onclick=()=> dmWin.style.display='none';
-$('#prClose').onclick=()=> prWin.style.display='none';
-
-// iOS keyboard padding لآخر الرسائل
-const pad=document.createElement('div'); pad.style.height='0px'; msgs.after(pad);
-window.visualViewport && window.visualViewport.addEventListener('resize', ()=>{
-  const gap=Math.max(0, window.innerHeight - window.visualViewport.height);
-  pad.style.height = gap ? (gap+10)+'px' : '0px';
-  scrollBottom();
-});
-
-window.addEventListener('load',()=> $('#user').focus());
+window.addEventListener('load',()=> $('#user')?.focus());
 </script>
 </body>
 </html>
